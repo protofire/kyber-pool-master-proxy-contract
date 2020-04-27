@@ -1,7 +1,11 @@
 pragma solidity 0.5.15;
 
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/ownership/Ownable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
+import "./lib/KyberDAO.sol";
+import "./lib/KyberStaking.sol";
+import "./lib/KyberFeeHandler.sol";
 
 
 /**
@@ -30,6 +34,11 @@ contract KyberPoolMaster is Ownable {
     // Amount of rewards owed to poolMembers for an epoch
     mapping(uint256 => uint256) public memberRewards;
 
+    IERC20 public kncToken;
+    KyberDAO public kyberDAO;
+    KyberStaking public kyberStaking;
+    KyberFeeHandler public kyberFeeHandler;
+
     /*** Events ***/
     event CommitNewFees(uint256 deadline, uint256 fee_rate);
     event NewFees(uint256 fee_rate);
@@ -41,9 +50,30 @@ contract KyberPoolMaster is Ownable {
         uint256 epoch
     );
 
-    constructor(uint256 _epochNotice, uint256 _delegationFee) public {
-        require(_epochNotice >= MINIMUM_EPOCH_NOTICE, "Epoch Notice too low");
+    constructor(
+        address _kncToken,
+        address _kyberDAO,
+        address _kyberStaking,
+        address _kyberFeeHandler,
+        uint256 _epochNotice,
+        uint256 _delegationFee
+    ) public {
+        require(_kncToken != address(0), "ctor: kncToken is missing");
+        require(_kyberDAO != address(0), "ctor: kyberDAO is missing");
+        require(_kyberStaking != address(0), "ctor: kyberStaking is missing");
+        require(
+            _kyberFeeHandler != address(0),
+            "ctor: kyberFeeHandler is missing"
+        );
+        require(
+            _epochNotice >= MINIMUM_EPOCH_NOTICE,
+            "ctor: Epoch Notice too low"
+        );
 
+        kncToken = IERC20(_kncToken);
+        kyberDAO = KyberDAO(_kyberDAO);
+        kyberStaking = KyberStaking(_kyberStaking);
+        kyberFeeHandler = KyberFeeHandler(_kyberFeeHandler);
         epochNotice = _epochNotice;
         delegationFee = _delegationFee;
     }
