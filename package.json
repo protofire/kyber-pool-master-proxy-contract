@@ -3,7 +3,12 @@
   "version": "0.0.1",
   "description": "",
   "scripts": {
-    "test": "truffle test"
+    "test": "truffle test",
+    "lint": "npm run lint:js && npm run lint:sol",
+    "lint:js": "eslint .",
+    "lint:js:fix": "eslint . --fix",
+    "lint:sol": "solhint --max-warnings 0 \"contracts/**/*.sol\"",
+    "lint:sol:prettier:fix": "prettier --write \"contracts/**/*.sol\""
   },
   "repository": {
     "type": "git",
