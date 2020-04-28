@@ -18,7 +18,7 @@ contract KyberPoolMaster is Ownable {
     uint256 constant MINIMUM_EPOCH_NOTICE = 1;
 
     // Number of epochs after which a change on deledatioFee is will be applied
-    uint256 public epochNotice = 1;
+    uint256 public epochNotice;
 
     // Mapping of if staker has claimed reward for Epoch
     mapping(uint256 => mapping(address => bool)) public claimedDelegateReward;
