@@ -1,11 +1,11 @@
-pragma solidity 0.5.15;
+pragma solidity 0.6.6;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/ownership/Ownable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "./lib/KyberDAO.sol";
-import "./lib/KyberStaking.sol";
-import "./lib/KyberFeeHandler.sol";
+import "smart-contracts/contracts/sol6/IKyberDAO.sol";
+import "smart-contracts/contracts/sol6/Dao/IKyberStaking.sol";
+import "smart-contracts/contracts/sol6//IKyberFeeHandler.sol";
 
 
 /**
@@ -36,9 +36,9 @@ contract KyberPoolMaster is Ownable {
     mapping(uint256 => uint256) public memberRewards;
 
     IERC20 public kncToken;
-    KyberDAO public kyberDAO;
-    KyberStaking public kyberStaking;
-    KyberFeeHandler public kyberFeeHandler;
+    IKyberDAO public kyberDAO;
+    IKyberStaking public kyberStaking;
+    IKyberFeeHandler public kyberFeeHandler;
 
     /*** Events ***/
     event CommitNewFees(uint256 deadline, uint256 fee_rate);
@@ -88,14 +88,41 @@ contract KyberPoolMaster is Ownable {
         );
 
         kncToken = IERC20(_kncToken);
-        kyberDAO = KyberDAO(_kyberDAO);
-        kyberStaking = KyberStaking(_kyberStaking);
-        kyberFeeHandler = KyberFeeHandler(_kyberFeeHandler);
+        kyberDAO = IKyberDAO(_kyberDAO);
+        kyberStaking = IKyberStaking(_kyberStaking);
+        kyberFeeHandler = IKyberFeeHandler(_kyberFeeHandler);
         epochNotice = _epochNotice;
         delegationFee = _delegationFee;
     }
 
-    function() external payable {
-        // to get ether from KayberDAO
+    function masterDeposit(uint256 amount) public onlyOwner {
+        require(amount > 0, "deposit: amount to deposit should be positive");
+
+        require(
+            kncToken.transferFrom(msg.sender, address(this), amount),
+            "deposit: can not get token"
+        );
+
+        // approve
+        kncToken.approve(address(kyberStaking), amount);
+
+        // deposit in KyberStaking
+        kyberStaking.deposit(amount);
     }
+
+    // TODO - do we need to apply nonReentrant as KyberStking
+    function masterWithdraw(uint256 amount) public onlyOwner {
+        require(amount > 0, "withdraw: amount is 0");
+
+        // withdraw from KyberStaking
+        kyberStaking.withdraw(amount);
+
+        // transfer KNC back to pool master
+        require(
+            kncToken.transfer(msg.sender, amount),
+            "withdraw: can not transfer knc to the pool master"
+        );
+    }
+
+    receive() external payable {}
 }
