@@ -7,7 +7,7 @@ const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const NO_ZERO_ADDRESS = '0x0000000000000000000000000000000000000001';
 
 contract('KyberPoolMaster test', async (accounts) => {
-  describe('deplyment', () => {
+  describe('deployment', () => {
     it('should not allow to deploy a KyberPoolMaster zero address kncToken', async () => {
       await expectRevert(
         KyberPoolMaster.new(
