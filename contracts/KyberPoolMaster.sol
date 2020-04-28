@@ -16,6 +16,7 @@ contract KyberPoolMaster is Ownable {
     using SafeMath for uint256;
 
     uint256 constant MINIMUM_EPOCH_NOTICE = 1;
+    uint256 constant MAX_DELEGATION_FEE = 10000;
 
     // Number of epochs after which a change on deledatioFee is will be applied
     uint256 public epochNotice;
@@ -42,7 +43,11 @@ contract KyberPoolMaster is Ownable {
     /*** Events ***/
     event CommitNewFees(uint256 deadline, uint256 fee_rate);
     event NewFees(uint256 fee_rate);
-    event MemberClaimReward(address indexed poolMember, uint256 reward, uint256 indexed epoch);
+    event MemberClaimReward(
+        address indexed poolMember,
+        uint256 reward,
+        uint256 indexed epoch
+    );
     event MasterClaimReward(
         address indexed poolMaster,
         uint256 reward,
@@ -50,6 +55,14 @@ contract KyberPoolMaster is Ownable {
         uint256 indexed epoch
     );
 
+    /**
+     * @param _kncToken KNC Token address
+     * @param _kyberDAO KyberDAO contract address
+     * @param _kyberStaking KyberStaking contract address
+     * @param _kyberFeeHandler KyberFeeHandler contract address
+     * @param _epochNotice Number of epochs after which a change on deledatioFee is will be applied
+     * @param _delegationFee Fee charged by poolMasters to poolMembers for services - Denominated in 1e4 units - 100 = 1%
+     */
     constructor(
         address _kncToken,
         address _kyberDAO,
@@ -68,6 +81,10 @@ contract KyberPoolMaster is Ownable {
         require(
             _epochNotice >= MINIMUM_EPOCH_NOTICE,
             "ctor: Epoch Notice too low"
+        );
+        require(
+            _delegationFee <= MAX_DELEGATION_FEE,
+            "ctor: Delegation Fee greater than 100%"
         );
 
         kncToken = IERC20(_kncToken);
