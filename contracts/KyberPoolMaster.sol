@@ -42,7 +42,7 @@ contract KyberPoolMaster is Ownable {
     /*** Events ***/
     event CommitNewFees(uint256 deadline, uint256 fee_rate);
     event NewFees(uint256 fee_rate);
-    event MemberClaimReward(address poolMember, uint256 reward, uint256 epoch);
+    event MemberClaimReward(address indexed poolMember, uint256 reward, uint256 indexed epoch);
     event MasterClaimReward(
         address poolMaster,
         uint256 reward,
