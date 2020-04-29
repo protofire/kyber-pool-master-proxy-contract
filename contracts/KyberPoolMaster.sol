@@ -95,7 +95,10 @@ contract KyberPoolMaster is Ownable {
         delegationFee = _delegationFee;
     }
 
-    // TODO - add doc
+    /**
+     * @dev call to stake more KNC for poolMaster
+     * @param amount amount of KNC to stake
+     */
     function masterDeposit(uint256 amount) external onlyOwner {
         require(
             amount > 0,
@@ -114,7 +117,10 @@ contract KyberPoolMaster is Ownable {
         kyberStaking.deposit(amount);
     }
 
-    // TODO - add doc
+    /**
+     * @dev call to withdraw KNC from staking
+     * @param amount amount of KNC to withdraw
+     */
     function masterWithdraw(uint256 amount) external onlyOwner {
         require(amount > 0, "masterWithdraw: amount is 0");
 
@@ -128,7 +134,12 @@ contract KyberPoolMaster is Ownable {
         );
     }
 
-    // TODO - add doc
+    /**
+     * @dev  vote for an option of a campaign
+     *       options are indexed from 1 to number of options
+     * @param campaignID id of campaign to vote for
+     * @param option id of options to vote for
+     */
     function vote(uint256 campaignID, uint256 option) external onlyOwner {
         kyberDAO.vote(campaignID, option);
     }
