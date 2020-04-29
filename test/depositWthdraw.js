@@ -5,7 +5,7 @@ const TestToken = artifacts.require('Token.sol');
 const StakingContract = artifacts.require('MockStakingContract.sol');
 
 const {expect} = require('chai');
-const {expectRevert, expectEvent} = require('@openzeppelin/test-helpers');
+const {time, expectRevert, expectEvent} = require('@openzeppelin/test-helpers');
 const {precisionUnits, zeroAddress} = require('./helper.js');
 const Helper = require('./helper.js');
 const BN = web3.utils.BN;
@@ -20,8 +20,8 @@ let blockTime;
 let currentChainTime;
 let kncToken;
 let stakingContract;
-let victor;
-let loi;
+let poolMasterOwner;
+let notOwner;
 let mike;
 
 let poolMaster;
@@ -35,8 +35,8 @@ contract(
     before('one time init', async () => {
       daoSetter = accounts[1];
       kncToken = await TestToken.new('Kyber Network Crystal', 'KNC', 18);
-      victor = accounts[2];
-      loi = accounts[3];
+      poolMasterOwner = accounts[2];
+      notOwner = accounts[3];
       mike = accounts[4];
 
       currentBlock = await Helper.getCurrentBlock();
@@ -45,6 +45,9 @@ contract(
 
       epochPeriod = 10;
       startBlock = currentBlock + 10;
+      firstEpochStartTimestamp = blockToTimestamp(startBlock);
+
+      console.log('current', currentBlock, currentChainTime);
 
       stakingContract = await StakingContract.new(
         kncToken.address,
@@ -60,7 +63,7 @@ contract(
         NO_ZERO_ADDRESS,
         2,
         1,
-        {from: victor}
+        {from: poolMasterOwner}
       );
     });
 
@@ -72,19 +75,43 @@ contract(
       return blocks * blockTime;
     };
 
-    describe('#Deposit Tests', () => {
-      it('should deposit into staking contract', async function () {
-        // await deployStakingContract(10, currentBlock + 10);
+    // future epoches
+    const increaseToEpoch = async (epoch) => {
+      const epochStartTime =
+        firstEpochStartTimestamp + (epoch - 1) * epochPeriod * blockTime;
+      return time.increaseTo(epochStartTime);
+    };
 
-        await kncToken.transfer(victor, mulPrecision(100));
+    const increaseOneEpoch = async (epoch) => {
+      const currentEpoch = await stakingContract.getCurrentEpochNumber();
+      return increaseToEpoch(Number(currentEpoch.toString()) + 1);
+    };
+
+    describe('#Deposit Tests', () => {
+      it('should not be able to deposit 0 amount', async function () {
+        await kncToken.transfer(poolMasterOwner, mulPrecision(100));
         await kncToken.approve(poolMaster.address, mulPrecision(100), {
-          from: victor,
+          from: poolMasterOwner,
         });
 
-        const initialBalance = await kncToken.balanceOf(victor);
+        await expectRevert(
+          poolMaster.masterDeposit(mulPrecision(0), {
+            from: poolMasterOwner,
+          }),
+          'masterDeposit: amount to deposit should be positive'
+        );
+      });
+
+      it('should deposit into staking contract', async function () {
+        await kncToken.transfer(poolMasterOwner, mulPrecision(100));
+        await kncToken.approve(poolMaster.address, mulPrecision(100), {
+          from: poolMasterOwner,
+        });
+
+        const initialBalance = await kncToken.balanceOf(poolMasterOwner);
 
         const {tx} = await poolMaster.masterDeposit(mulPrecision(20), {
-          from: victor,
+          from: poolMasterOwner,
         });
 
         await expectEvent.inTransaction(tx, stakingContract, 'Deposited', {
@@ -93,9 +120,59 @@ contract(
           amount: mulPrecision(20),
         });
 
-        const finalBalance = await kncToken.balanceOf(victor);
+        const finalBalance = await kncToken.balanceOf(poolMasterOwner);
 
         const expectedKNCBalance = initialBalance.sub(mulPrecision(20));
+
+        expect(finalBalance.toString()).to.equal(expectedKNCBalance.toString());
+      });
+
+      it('non owner should not be able to deposit', async function () {
+        await kncToken.transfer(notOwner, mulPrecision(100));
+        await kncToken.approve(poolMaster.address, mulPrecision(100), {
+          from: notOwner,
+        });
+
+        const initialBalance = await kncToken.balanceOf(notOwner);
+
+        await expectRevert(
+          poolMaster.masterDeposit(mulPrecision(20), {
+            from: notOwner,
+          }),
+          'Ownable: caller is not the owner'
+        );
+
+        const finalBalance = await kncToken.balanceOf(notOwner);
+
+        expect(finalBalance.toString()).to.equal(initialBalance.toString());
+      });
+    });
+    describe('#Withdraw Tests', () => {
+      it('should not be able to whitdraw 0 amount', async function () {
+        await expectRevert(
+          poolMaster.masterWithdraw(mulPrecision(0), {
+            from: poolMasterOwner,
+          }),
+          'masterWithdraw: amount is 0'
+        );
+      });
+
+      it('should withdraw some amount from staking contract', async function () {
+        const initialBalance = await kncToken.balanceOf(poolMasterOwner);
+
+        const {tx} = await poolMaster.masterWithdraw(mulPrecision(10), {
+          from: poolMasterOwner,
+        });
+
+        await expectEvent.inTransaction(tx, stakingContract, 'Withdraw', {
+          curEpoch: '0',
+          staker: poolMaster.address,
+          amount: mulPrecision(10),
+        });
+
+        const finalBalance = await kncToken.balanceOf(poolMasterOwner);
+
+        const expectedKNCBalance = initialBalance.add(mulPrecision(10));
 
         expect(finalBalance.toString()).to.equal(expectedKNCBalance.toString());
       });

@@ -96,11 +96,14 @@ contract KyberPoolMaster is Ownable {
     }
 
     function masterDeposit(uint256 amount) public onlyOwner {
-        require(amount > 0, "deposit: amount to deposit should be positive");
+        require(
+            amount > 0,
+            "masterDeposit: amount to deposit should be positive"
+        );
 
         require(
             kncToken.transferFrom(msg.sender, address(this), amount),
-            "deposit: can not get token"
+            "masterDeposit: can not get token"
         );
 
         // approve
@@ -112,7 +115,7 @@ contract KyberPoolMaster is Ownable {
 
     // TODO - do we need to apply nonReentrant as KyberStking
     function masterWithdraw(uint256 amount) public onlyOwner {
-        require(amount > 0, "withdraw: amount is 0");
+        require(amount > 0, "masterWithdraw: amount is 0");
 
         // withdraw from KyberStaking
         kyberStaking.withdraw(amount);
@@ -120,7 +123,7 @@ contract KyberPoolMaster is Ownable {
         // transfer KNC back to pool master
         require(
             kncToken.transfer(msg.sender, amount),
-            "withdraw: can not transfer knc to the pool master"
+            "masterWithdraw: can not transfer knc to the pool master"
         );
     }
 
