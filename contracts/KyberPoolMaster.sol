@@ -95,7 +95,8 @@ contract KyberPoolMaster is Ownable {
         delegationFee = _delegationFee;
     }
 
-    function masterDeposit(uint256 amount) public onlyOwner {
+    // TODO - add doc
+    function masterDeposit(uint256 amount) external onlyOwner {
         require(
             amount > 0,
             "masterDeposit: amount to deposit should be positive"
@@ -113,8 +114,8 @@ contract KyberPoolMaster is Ownable {
         kyberStaking.deposit(amount);
     }
 
-    // TODO - do we need to apply nonReentrant as KyberStking
-    function masterWithdraw(uint256 amount) public onlyOwner {
+    // TODO - add doc
+    function masterWithdraw(uint256 amount) external onlyOwner {
         require(amount > 0, "masterWithdraw: amount is 0");
 
         // withdraw from KyberStaking
@@ -125,6 +126,11 @@ contract KyberPoolMaster is Ownable {
             kncToken.transfer(msg.sender, amount),
             "masterWithdraw: can not transfer knc to the pool master"
         );
+    }
+
+    // TODO - add doc
+    function vote(uint256 campaignID, uint256 option) external onlyOwner {
+        kyberDAO.vote(campaignID, option);
     }
 
     receive() external payable {}

@@ -47,8 +47,6 @@ contract(
       startBlock = currentBlock + 10;
       firstEpochStartTimestamp = blockToTimestamp(startBlock);
 
-      console.log('current', currentBlock, currentChainTime);
-
       stakingContract = await StakingContract.new(
         kncToken.address,
         blocksToSeconds(epochPeriod),
@@ -109,13 +107,14 @@ contract(
         });
 
         const initialBalance = await kncToken.balanceOf(poolMasterOwner);
+        const currentEpoch = await stakingContract.getCurrentEpochNumber();
 
         const {tx} = await poolMaster.masterDeposit(mulPrecision(20), {
           from: poolMasterOwner,
         });
 
         await expectEvent.inTransaction(tx, stakingContract, 'Deposited', {
-          curEpoch: '0',
+          curEpoch: currentEpoch.toString(),
           staker: poolMaster.address,
           amount: mulPrecision(20),
         });
@@ -159,13 +158,14 @@ contract(
 
       it('should withdraw some amount from staking contract', async function () {
         const initialBalance = await kncToken.balanceOf(poolMasterOwner);
+        const currentEpoch = await stakingContract.getCurrentEpochNumber();
 
         const {tx} = await poolMaster.masterWithdraw(mulPrecision(10), {
           from: poolMasterOwner,
         });
 
         await expectEvent.inTransaction(tx, stakingContract, 'Withdraw', {
-          curEpoch: '0',
+          curEpoch: currentEpoch.toString(),
           staker: poolMaster.address,
           amount: mulPrecision(10),
         });
@@ -175,6 +175,21 @@ contract(
         const expectedKNCBalance = initialBalance.add(mulPrecision(10));
 
         expect(finalBalance.toString()).to.equal(expectedKNCBalance.toString());
+      });
+
+      it('non owner should not be able to withdraw', async function () {
+        const initialBalance = await kncToken.balanceOf(notOwner);
+
+        await expectRevert(
+          poolMaster.masterWithdraw(mulPrecision(20), {
+            from: notOwner,
+          }),
+          'Ownable: caller is not the owner'
+        );
+
+        const finalBalance = await kncToken.balanceOf(notOwner);
+
+        expect(finalBalance.toString()).to.equal(initialBalance.toString());
       });
     });
   }
