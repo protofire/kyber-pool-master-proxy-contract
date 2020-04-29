@@ -32,6 +32,14 @@ contract KyberPoolMaster is Ownable {
     // 100 = 1%
     uint256 public delegationFee;
 
+    struct DFeeData {
+        uint256 fromEpoch;
+        uint256 fee;
+        bool applied;
+    }
+
+    DFeeData[] public delegationFees;
+
     // Amount of rewards owed to poolMembers for an epoch
     mapping(uint256 => uint256) public memberRewards;
 
@@ -92,7 +100,7 @@ contract KyberPoolMaster is Ownable {
         kyberStaking = IKyberStaking(_kyberStaking);
         kyberFeeHandler = IKyberFeeHandler(_kyberFeeHandler);
         epochNotice = _epochNotice;
-        delegationFee = _delegationFee;
+        delegationFees.push(DFeeData(0, _delegationFee, true));
     }
 
     /**
@@ -142,6 +150,72 @@ contract KyberPoolMaster is Ownable {
      */
     function vote(uint256 campaignID, uint256 option) external onlyOwner {
         kyberDAO.vote(campaignID, option);
+    }
+
+    // TODO - validate business logic
+    function commitNewFee(uint256 _fee) external onlyOwner {
+        require(
+            _fee <= MAX_DELEGATION_FEE,
+            "commitNewFee: Delegation Fee greater than 100%"
+        );
+
+        uint256 curEpoch = kyberDao.getCurrentEpochNumber();
+
+        // epoch, fee, aplied
+        if (delegationFees.length == 0) {
+            delegationFees.push(DFeeData(0, _fee, true));
+        } else {
+            DFeeData storage lastFee = delegationFees[delegationFees.length -
+                1];
+
+            if (lastFee.epoch > curEpoch) {
+                // is pending
+                lastFee.epoch = curEpoch.add(epochNotice);
+                lastFee.fee = _fee;
+            } else {
+                if (lastFee.applied == false) {
+                    lastFee.applied = true;
+                    emit NewFees(lastFee.fee);
+                }
+                delegationFees.push(
+                    DFeeData(curEpoch.add(epochNotice), _fee, false)
+                );
+
+                emit CommitNewFees(curEpoch.add(epochNotice).sub(1), _fee);
+            }
+        }
+    }
+
+    function getEpochDFeeDataId(uint256 epoch)
+        public
+        returns (uint256 dFeeDataId)
+    {
+        if (epoch == 0) {
+            dFeeDataId = 0;
+        } else {
+            for (uint256 i = delegationFees.length - 1; i > 0; i--) {
+                DFeeData memory dFeeData = delegationFees[i];
+                if (dFeeData.fromEpoch <= epoch) {
+                    dFeeDataId = i;
+                    break;
+                }
+            }
+        }
+    }
+
+    function claimRewardsMaster(uint256 epoch) public {
+        uint256 curEpoch = kyberDao.getCurrentEpochNumber();
+        require(epoch < curEpoch, "claimRewardsMaster: only for past epochs");
+
+        DFeeData storage epochDFeeData = delegationFees[getEpochDFeeData(
+            epoch
+        )];
+        if (epochDFeeData.applied == false) {
+            epochDFeeData.applied = true;
+            emit NewFees(epochDFeeData.fee);
+        }
+
+        // TODO - continue
     }
 
     receive() external payable {}
