@@ -15,8 +15,8 @@ import "smart-contracts/contracts/sol6//IKyberFeeHandler.sol";
 contract KyberPoolMaster is Ownable {
     using SafeMath for uint256;
 
-    uint256 constant MINIMUM_EPOCH_NOTICE = 1;
-    uint256 constant MAX_DELEGATION_FEE = 10000;
+    uint256 internal constant MINIMUM_EPOCH_NOTICE = 1;
+    uint256 internal constant MAX_DELEGATION_FEE = 10000;
 
     // Number of epochs after which a change on deledatioFee is will be applied
     uint256 public epochNotice;
@@ -49,8 +49,8 @@ contract KyberPoolMaster is Ownable {
     IKyberFeeHandler public kyberFeeHandler;
 
     /*** Events ***/
-    event CommitNewFees(uint256 deadline, uint256 fee_rate);
-    event NewFees(uint256 fee_rate);
+    event CommitNewFees(uint256 deadline, uint256 feeRate);
+    event NewFees(uint256 feeRate);
     event MemberClaimReward(
         address indexed poolMember,
         uint256 reward,

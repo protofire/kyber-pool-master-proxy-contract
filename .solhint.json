@@ -9,6 +9,6 @@
     "multiple-sends": "off",
     "bracket-align": "off",
     "no-complex-fallback": "off",
-    "compiler-version": ["error", "0.5.15"]
+    "compiler-version": ["error", "0.6.6"]
   }
 }
