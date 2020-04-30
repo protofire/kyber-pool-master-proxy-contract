@@ -7,7 +7,7 @@ const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const NO_ZERO_ADDRESS = '0x0000000000000000000000000000000000000001';
 const MAX_DELEGATION_FEE = 10000;
 
-contract('KyberPoolMaster test', async (accounts) => {
+contract('KyberPoolMaster deployment', async (accounts) => {
   describe('deployment', () => {
     it('should not allow to deploy a KyberPoolMaster zero address kncToken', async () => {
       await expectRevert(
@@ -118,8 +118,10 @@ contract('KyberPoolMaster test', async (accounts) => {
       const epochNotice = await poolMater.epochNotice();
       expect(epochNotice.toString()).to.equal('2');
 
-      const delegationFee = await poolMater.delegationFee();
-      expect(delegationFee.toString()).to.equal('1');
+      const delegationFee = await poolMater.delegationFees(0);
+      expect(delegationFee.fromEpoch.toString()).to.equal('0');
+      expect(delegationFee.fee.toString()).to.equal('1');
+      expect(delegationFee.applied).to.equal(true);
     });
   });
 });

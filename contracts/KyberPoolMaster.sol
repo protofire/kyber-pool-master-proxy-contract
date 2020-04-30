@@ -3,7 +3,9 @@ pragma solidity 0.6.6;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "smart-contracts/contracts/sol6/IKyberDAO.sol";
+
+import "./interfaces/IExtendedKyberDAO.sol";
+
 import "smart-contracts/contracts/sol6/Dao/IKyberStaking.sol";
 import "smart-contracts/contracts/sol6//IKyberFeeHandler.sol";
 
@@ -30,8 +32,6 @@ contract KyberPoolMaster is Ownable {
     // Fee charged by poolMasters to poolMembers for services
     // Denominated in 1e4 units
     // 100 = 1%
-    uint256 public delegationFee;
-
     struct DFeeData {
         uint256 fromEpoch;
         uint256 fee;
@@ -44,7 +44,7 @@ contract KyberPoolMaster is Ownable {
     mapping(uint256 => uint256) public memberRewards;
 
     IERC20 public kncToken;
-    IKyberDAO public kyberDAO;
+    IExtendedKyberDAO public kyberDAO;
     IKyberStaking public kyberStaking;
     IKyberFeeHandler public kyberFeeHandler;
 
@@ -96,7 +96,7 @@ contract KyberPoolMaster is Ownable {
         );
 
         kncToken = IERC20(_kncToken);
-        kyberDAO = IKyberDAO(_kyberDAO);
+        kyberDAO = IExtendedKyberDAO(_kyberDAO);
         kyberStaking = IKyberStaking(_kyberStaking);
         kyberFeeHandler = IKyberFeeHandler(_kyberFeeHandler);
         epochNotice = _epochNotice;
@@ -159,31 +159,25 @@ contract KyberPoolMaster is Ownable {
             "commitNewFee: Delegation Fee greater than 100%"
         );
 
-        uint256 curEpoch = kyberDao.getCurrentEpochNumber();
+        uint256 curEpoch = kyberDAO.getCurrentEpochNumber();
 
         // epoch, fee, aplied
-        if (delegationFees.length == 0) {
-            delegationFees.push(DFeeData(0, _fee, true));
+        DFeeData storage lastFee = delegationFees[delegationFees.length - 1];
+
+        if (lastFee.fromEpoch > curEpoch) {
+            // is pending
+            lastFee.fromEpoch = curEpoch.add(epochNotice);
+            lastFee.fee = _fee;
         } else {
-            DFeeData storage lastFee = delegationFees[delegationFees.length -
-                1];
-
-            if (lastFee.epoch > curEpoch) {
-                // is pending
-                lastFee.epoch = curEpoch.add(epochNotice);
-                lastFee.fee = _fee;
-            } else {
-                if (lastFee.applied == false) {
-                    lastFee.applied = true;
-                    emit NewFees(lastFee.fee);
-                }
-                delegationFees.push(
-                    DFeeData(curEpoch.add(epochNotice), _fee, false)
-                );
-
-                emit CommitNewFees(curEpoch.add(epochNotice).sub(1), _fee);
+            if (lastFee.applied == false) {
+                lastFee.applied = true;
+                emit NewFees(lastFee.fee);
             }
+            delegationFees.push(
+                DFeeData(curEpoch.add(epochNotice), _fee, false)
+            );
         }
+        emit CommitNewFees(curEpoch.add(epochNotice).sub(1), _fee);
     }
 
     function getEpochDFeeDataId(uint256 epoch)
@@ -201,21 +195,6 @@ contract KyberPoolMaster is Ownable {
                 }
             }
         }
-    }
-
-    function claimRewardsMaster(uint256 epoch) public {
-        uint256 curEpoch = kyberDao.getCurrentEpochNumber();
-        require(epoch < curEpoch, "claimRewardsMaster: only for past epochs");
-
-        DFeeData storage epochDFeeData = delegationFees[getEpochDFeeData(
-            epoch
-        )];
-        if (epochDFeeData.applied == false) {
-            epochDFeeData.applied = true;
-            emit NewFees(epochDFeeData.fee);
-        }
-
-        // TODO - continue
     }
 
     receive() external payable {}
