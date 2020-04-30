@@ -32,7 +32,7 @@ contract KyberPoolMasterWithClaimOnlyNewFee is KyberPoolMaster {
         )];
         if (epochDFeeData.applied == false) {
             epochDFeeData.applied = true;
-            emit NewFees(epochDFeeData.fee);
+            emit NewFees(epochDFeeData.fromEpoch, epochDFeeData.fee);
         }
 
         // TODO - continue

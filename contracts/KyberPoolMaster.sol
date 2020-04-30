@@ -1,6 +1,7 @@
 pragma solidity 0.6.6;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
@@ -38,6 +39,7 @@ contract KyberPoolMaster is Ownable {
         bool applied;
     }
 
+    uint256 public delegationFeesLength;
     DFeeData[] public delegationFees;
 
     // Amount of rewards owed to poolMembers for an epoch
@@ -50,7 +52,7 @@ contract KyberPoolMaster is Ownable {
 
     /*** Events ***/
     event CommitNewFees(uint256 deadline, uint256 feeRate);
-    event NewFees(uint256 feeRate);
+    event NewFees(uint256 fromEpoch, uint256 feeRate);
     event MemberClaimReward(
         address indexed poolMember,
         uint256 reward,
@@ -101,6 +103,7 @@ contract KyberPoolMaster is Ownable {
         kyberFeeHandler = IKyberFeeHandler(_kyberFeeHandler);
         epochNotice = _epochNotice;
         delegationFees.push(DFeeData(0, _delegationFee, true));
+        delegationFeesLength = 1;
     }
 
     /**
@@ -169,15 +172,24 @@ contract KyberPoolMaster is Ownable {
             lastFee.fromEpoch = curEpoch.add(epochNotice);
             lastFee.fee = _fee;
         } else {
-            if (lastFee.applied == false) {
-                lastFee.applied = true;
-                emit NewFees(lastFee.fee);
-            }
+            applyPendingFee();
+
             delegationFees.push(
                 DFeeData(curEpoch.add(epochNotice), _fee, false)
             );
+            delegationFeesLength++;
         }
         emit CommitNewFees(curEpoch.add(epochNotice).sub(1), _fee);
+    }
+
+    function applyPendingFee() public onlyOwner {
+        DFeeData storage lastFee = delegationFees[delegationFees.length - 1];
+        uint256 curEpoch = kyberDAO.getCurrentEpochNumber();
+
+        if (lastFee.fromEpoch <= curEpoch && lastFee.applied == false) {
+            lastFee.applied = true;
+            emit NewFees(lastFee.fromEpoch, lastFee.fee);
+        }
     }
 
     function getEpochDFeeDataId(uint256 epoch)
@@ -195,6 +207,12 @@ contract KyberPoolMaster is Ownable {
                 }
             }
         }
+    }
+
+    function claimErc20Tokens(address _token, address _to) external onlyOwner {
+        IERC20 token = IERC20(_token);
+        uint256 balance = token.balanceOf(address(this));
+        SafeERC20.safeTransfer(token, _to, balance);
     }
 
     receive() external payable {}
