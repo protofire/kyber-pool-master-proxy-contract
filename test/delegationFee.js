@@ -35,7 +35,7 @@ contract('KyberPoolMaster delegationFee', async (accounts) => {
     );
   });
 
-  describe('deployment', () => {
+  describe('delegationFee setting', () => {
     it('non owner should not be able to create a new delegationFee', async () => {
       await expectRevert(
         kyberPoolMaster.commitNewFee(2, {from: notOwner}),
