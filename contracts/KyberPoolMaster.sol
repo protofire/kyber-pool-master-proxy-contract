@@ -1,9 +1,12 @@
 pragma solidity 0.6.6;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "smart-contracts/contracts/sol6/IKyberDAO.sol";
+
+import "./interfaces/IExtendedKyberDAO.sol";
+
 import "smart-contracts/contracts/sol6/Dao/IKyberStaking.sol";
 import "smart-contracts/contracts/sol6//IKyberFeeHandler.sol";
 
@@ -30,19 +33,25 @@ contract KyberPoolMaster is Ownable {
     // Fee charged by poolMasters to poolMembers for services
     // Denominated in 1e4 units
     // 100 = 1%
-    uint256 public delegationFee;
+    struct DFeeData {
+        uint256 fromEpoch;
+        uint256 fee;
+        bool applied;
+    }
+
+    DFeeData[] public delegationFees;
 
     // Amount of rewards owed to poolMembers for an epoch
     mapping(uint256 => uint256) public memberRewards;
 
     IERC20 public kncToken;
-    IKyberDAO public kyberDAO;
+    IExtendedKyberDAO public kyberDAO;
     IKyberStaking public kyberStaking;
     IKyberFeeHandler public kyberFeeHandler;
 
     /*** Events ***/
     event CommitNewFees(uint256 deadline, uint256 feeRate);
-    event NewFees(uint256 feeRate);
+    event NewFees(uint256 fromEpoch, uint256 feeRate);
     event MemberClaimReward(
         address indexed poolMember,
         uint256 reward,
@@ -88,11 +97,17 @@ contract KyberPoolMaster is Ownable {
         );
 
         kncToken = IERC20(_kncToken);
-        kyberDAO = IKyberDAO(_kyberDAO);
+        kyberDAO = IExtendedKyberDAO(_kyberDAO);
         kyberStaking = IKyberStaking(_kyberStaking);
         kyberFeeHandler = IKyberFeeHandler(_kyberFeeHandler);
         epochNotice = _epochNotice;
-        delegationFee = _delegationFee;
+
+        uint256 currEpoch = kyberDAO.getCurrentEpochNumber();
+
+        delegationFees.push(DFeeData(currEpoch, _delegationFee, true));
+
+        emit CommitNewFees(currEpoch, _delegationFee);
+        emit NewFees(currEpoch, _delegationFee);
     }
 
     /**
@@ -142,6 +157,117 @@ contract KyberPoolMaster is Ownable {
      */
     function vote(uint256 campaignID, uint256 option) external onlyOwner {
         kyberDAO.vote(campaignID, option);
+    }
+
+    /**
+     * @dev  set a new delegation fee to be applyied in current epoch + epochNotice
+     * @param _fee new fee
+     */
+    function commitNewFee(uint256 _fee) external onlyOwner {
+        require(
+            _fee <= MAX_DELEGATION_FEE,
+            "commitNewFee: Delegation Fee greater than 100%"
+        );
+
+        uint256 curEpoch = kyberDAO.getCurrentEpochNumber();
+        uint256 fromEpoch = curEpoch.add(epochNotice);
+
+        DFeeData storage lastFee = delegationFees[delegationFees.length - 1];
+
+        if (lastFee.fromEpoch > curEpoch) {
+            lastFee.fromEpoch = fromEpoch;
+            lastFee.fee = _fee;
+        } else {
+            if (!lastFee.applied) {
+                applyFee(lastFee);
+            }
+
+            delegationFees.push(DFeeData(fromEpoch, _fee, false));
+        }
+        emit CommitNewFees(fromEpoch.sub(1), _fee);
+    }
+
+    /**
+     * @dev Applies the pending new fee
+     */
+    function applyPendingFee() public {
+        DFeeData storage lastFee = delegationFees[delegationFees.length - 1];
+        uint256 curEpoch = kyberDAO.getCurrentEpochNumber();
+
+        if (lastFee.fromEpoch <= curEpoch && !lastFee.applied) {
+            applyFee(lastFee);
+        }
+    }
+
+    function applyFee(DFeeData storage fee) internal {
+        fee.applied = true;
+        emit NewFees(fee.fromEpoch, fee.fee);
+    }
+
+    /**
+     * @dev Gets the id of the delegation fee corresponding to the given epoch
+     * @param epoch for which epoch is querying delegation fee
+     */
+    function getEpochDFeeDataId(uint256 epoch)
+        internal
+        view
+        returns (uint256 dFeeDataId)
+    {
+        for (
+            dFeeDataId = delegationFees.length - 1;
+            dFeeDataId > 0;
+            dFeeDataId--
+        ) {
+            DFeeData memory dFeeData = delegationFees[dFeeDataId];
+            if (dFeeData.fromEpoch <= epoch) {
+                break;
+            }
+        }
+    }
+
+    /**
+     * @dev Gets the the delegation fee data corresponding to the given epoch
+     * @param epoch for which epoch is querying delegation fee
+     */
+    function getEpochDFeeData(uint256 epoch)
+        public
+        view
+        returns (
+            uint256 fromEpoch,
+            uint256 fee,
+            bool applied
+        )
+    {
+        DFeeData memory epochDFee = delegationFees[getEpochDFeeDataId(epoch)];
+        fromEpoch = epochDFee.fromEpoch;
+        fee = epochDFee.fee;
+        applied = epochDFee.applied;
+    }
+
+    /**
+     * @dev Gets the the delegation fee data corresponding to the current epoch
+     */
+    function delegationFee()
+        public
+        view
+        returns (
+            uint256 fromEpoch,
+            uint256 fee,
+            bool applied
+        )
+    {
+        uint256 curEpoch = kyberDAO.getCurrentEpochNumber();
+        return getEpochDFeeData(curEpoch);
+    }
+
+    function delegationFeesLength() public view returns (uint256) {
+        return delegationFees.length;
+    }
+
+    function claimErc20Tokens(address _token, address _to) external onlyOwner {
+        IERC20 token = IERC20(_token);
+        uint256 balance = token.balanceOf(address(this));
+        SafeERC20.safeTransfer(token, _to, balance);
     }
 
     receive() external payable {}

@@ -48,165 +48,160 @@ let tInPrecision = new BN(precisionUnits); // 1
 const NO_ZERO_ADDRESS = '0x0000000000000000000000000000000000000001';
 const MAX_DELEGATION_FEE = 10000;
 
-contract(
-  'KyberPoolMaster masterDeposit and masterWithdraw',
-  async (accounts) => {
-    before('one time init', async () => {
-      campCreator = accounts[1];
-      kncToken = await TestToken.new('Kyber Network Crystal', 'KNC', 18);
-      poolMasterOwner = accounts[2];
-      notOwner = accounts[3];
-      mike = accounts[4];
-      feeHandler = await MockFeeHandler.new();
+contract('KyberPoolMaster vote', async (accounts) => {
+  before('one time init', async () => {
+    campCreator = accounts[1];
+    kncToken = await TestToken.new('Kyber Network Crystal', 'KNC', 18);
+    poolMasterOwner = accounts[2];
+    notOwner = accounts[3];
+    mike = accounts[4];
+    feeHandler = await MockFeeHandler.new();
 
-      await kncToken.transfer(poolMasterOwner, mulPrecision(1000000));
-      await kncToken.transfer(notOwner, mulPrecision(1000000));
-      await kncToken.transfer(mike, mulPrecision(1000000));
+    await kncToken.transfer(poolMasterOwner, mulPrecision(1000000));
+    await kncToken.transfer(notOwner, mulPrecision(1000000));
+    await kncToken.transfer(mike, mulPrecision(1000000));
 
-      currentBlock = await Helper.getCurrentBlock();
-      currentChainTime = await Helper.getCurrentBlockTime();
-      blockTime = 16; // each block is mined after 16s
+    currentBlock = await Helper.getCurrentBlock();
+    currentChainTime = await Helper.getCurrentBlockTime();
+    blockTime = 16; // each block is mined after 16s
 
-      epochPeriod = 50;
-      startBlock = currentBlock + 20;
-      daoStartTime = blockToTimestamp(startBlock);
+    epochPeriod = 50;
+    startBlock = currentBlock + 20;
+    daoStartTime = blockToTimestamp(startBlock);
 
-      stakingContract = await StakingContract.new(
-        kncToken.address,
-        blocksToSeconds(epochPeriod),
-        daoStartTime,
-        campCreator
-      );
+    stakingContract = await StakingContract.new(
+      kncToken.address,
+      blocksToSeconds(epochPeriod),
+      daoStartTime,
+      campCreator
+    );
 
-      daoContract = await DAOContract.new(
-        blocksToSeconds(epochPeriod),
-        daoStartTime,
-        stakingContract.address,
-        feeHandler.address,
-        kncToken.address,
-        blocksToSeconds(minCampPeriod),
-        defaultNetworkFee,
-        defaultRewardBps,
-        defaultRebateBps,
-        campCreator
-      );
-      await stakingContract.updateDAOAddressAndRemoveSetter(
-        daoContract.address,
-        {from: campCreator}
-      );
-
-      poolMaster = await KyberPoolMaster.new(
-        kncToken.address,
-        daoContract.address,
-        stakingContract.address,
-        feeHandler.address,
-        2,
-        1,
-        {from: poolMasterOwner}
-      );
-
-      await kncToken.approve(poolMaster.address, mulPrecision(100), {
-        from: poolMasterOwner,
-      });
-
-      await poolMaster.masterDeposit(mulPrecision(20), {
-        from: poolMasterOwner,
-      });
-
-      let link = web3.utils.fromAscii('https://kyberswap.com');
-      await updateCurrentBlockAndTimestamp();
-      await submitNewCampaignAndDelayToStart(
-        daoContract,
-        0,
-        currentBlock + 2,
-        currentBlock + 2 + minCampPeriod,
-        minPercentageInPrecision,
-        cInPrecision,
-        tInPrecision,
-        [1, 2, 3, 4],
-        link,
-        {from: campCreator}
-      );
+    daoContract = await DAOContract.new(
+      blocksToSeconds(epochPeriod),
+      daoStartTime,
+      stakingContract.address,
+      feeHandler.address,
+      kncToken.address,
+      blocksToSeconds(minCampPeriod),
+      defaultNetworkFee,
+      defaultRewardBps,
+      defaultRebateBps,
+      campCreator
+    );
+    await stakingContract.updateDAOAddressAndRemoveSetter(daoContract.address, {
+      from: campCreator,
     });
 
-    const blockToTimestamp = function (block) {
-      return currentChainTime + (block - currentBlock) * blockTime;
-    };
+    poolMaster = await KyberPoolMaster.new(
+      kncToken.address,
+      daoContract.address,
+      stakingContract.address,
+      feeHandler.address,
+      2,
+      1,
+      {from: poolMasterOwner}
+    );
 
-    const blocksToSeconds = function (blocks) {
-      return blocks * blockTime;
-    };
+    await kncToken.approve(poolMaster.address, mulPrecision(100), {
+      from: poolMasterOwner,
+    });
 
-    // future epoches
-    const increaseToEpoch = async (epoch) => {
-      const epochStartTime =
-        daoStartTime + (epoch - 1) * epochPeriod * blockTime;
-      return time.increaseTo(epochStartTime);
-    };
+    await poolMaster.masterDeposit(mulPrecision(20), {
+      from: poolMasterOwner,
+    });
 
-    const increaseOneEpoch = async (epoch) => {
-      const currentEpoch = await stakingContract.getCurrentEpochNumber();
-      return increaseToEpoch(Number(currentEpoch.toString()) + 1);
-    };
-
-    const updateCurrentBlockAndTimestamp = async () => {
-      currentBlock = await Helper.getCurrentBlock();
-      currentTimestamp = await Helper.getCurrentBlockTime();
-    };
-
-    const submitNewCampaignAndDelayToStart = async (
+    let link = web3.utils.fromAscii('https://kyberswap.com');
+    await updateCurrentBlockAndTimestamp();
+    await submitNewCampaignAndDelayToStart(
       daoContract,
+      0,
+      currentBlock + 2,
+      currentBlock + 2 + minCampPeriod,
+      minPercentageInPrecision,
+      cInPrecision,
+      tInPrecision,
+      [1, 2, 3, 4],
+      link,
+      {from: campCreator}
+    );
+  });
+
+  const blockToTimestamp = function (block) {
+    return currentChainTime + (block - currentBlock) * blockTime;
+  };
+
+  const blocksToSeconds = function (blocks) {
+    return blocks * blockTime;
+  };
+
+  // future epoches
+  const increaseToEpoch = async (epoch) => {
+    const epochStartTime = daoStartTime + (epoch - 1) * epochPeriod * blockTime;
+    return time.increaseTo(epochStartTime);
+  };
+
+  const increaseOneEpoch = async (epoch) => {
+    const currentEpoch = await stakingContract.getCurrentEpochNumber();
+    return increaseToEpoch(Number(currentEpoch.toString()) + 1);
+  };
+
+  const updateCurrentBlockAndTimestamp = async () => {
+    currentBlock = await Helper.getCurrentBlock();
+    currentTimestamp = await Helper.getCurrentBlockTime();
+  };
+
+  const submitNewCampaignAndDelayToStart = async (
+    daoContract,
+    campaignType,
+    startBlock,
+    endBlock,
+    minPercentageInPrecision,
+    cInPrecision,
+    tInPrecision,
+    options,
+    link,
+    opt
+  ) => {
+    await daoContract.submitNewCampaign(
       campaignType,
-      startBlock,
-      endBlock,
+      blockToTimestamp(startBlock),
+      blockToTimestamp(endBlock),
       minPercentageInPrecision,
       cInPrecision,
       tInPrecision,
       options,
       link,
       opt
-    ) => {
-      await daoContract.submitNewCampaign(
-        campaignType,
-        blockToTimestamp(startBlock),
-        blockToTimestamp(endBlock),
-        minPercentageInPrecision,
-        cInPrecision,
-        tInPrecision,
-        options,
-        link,
-        opt
-      );
-      await Helper.mineNewBlockAt(blockToTimestamp(startBlock));
-    };
+    );
+    await Helper.mineNewBlockAt(blockToTimestamp(startBlock));
+  };
 
-    describe('#Vote Tests', () => {
-      it('should be able to vote', async function () {
-        const currentEpoch = await stakingContract.getCurrentEpochNumber();
+  describe('#Vote Tests', () => {
+    it('should be able to vote', async function () {
+      const currentEpoch = await stakingContract.getCurrentEpochNumber();
 
-        const {tx} = await poolMaster.vote(1, 1, {
-          from: poolMasterOwner,
-        });
-
-        await expectEvent.inTransaction(tx, daoContract, 'Voted', {
-          epoch: currentEpoch.toString(),
-          staker: poolMaster.address,
-          campaignID: '1',
-          option: '1',
-        });
+      const {tx} = await poolMaster.vote(1, 1, {
+        from: poolMasterOwner,
       });
 
-      it('non owner should not be able to vote', async function () {
-        await expectRevert(
-          poolMaster.vote(1, 1, {
-            from: notOwner,
-          }),
-          'Ownable: caller is not the owner'
-        );
+      await expectEvent.inTransaction(tx, daoContract, 'Voted', {
+        epoch: currentEpoch.toString(),
+        staker: poolMaster.address,
+        campaignID: '1',
+        option: '1',
       });
     });
-  }
-);
+
+    it('non owner should not be able to vote', async function () {
+      await expectRevert(
+        poolMaster.vote(1, 1, {
+          from: notOwner,
+        }),
+        'Ownable: caller is not the owner'
+      );
+    });
+  });
+});
 
 function logInfo(message) {
   console.log('       ' + message);
