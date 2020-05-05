@@ -39,7 +39,6 @@ contract KyberPoolMaster is Ownable {
         bool applied;
     }
 
-    uint256 public delegationFeesLength;
     DFeeData[] public delegationFees;
 
     // Amount of rewards owed to poolMembers for an epoch
@@ -106,7 +105,6 @@ contract KyberPoolMaster is Ownable {
         uint256 currEpoch = kyberDAO.getCurrentEpochNumber();
 
         delegationFees.push(DFeeData(currEpoch, _delegationFee, true));
-        delegationFeesLength = 1;
 
         emit CommitNewFees(currEpoch, _delegationFee);
         emit NewFees(currEpoch, _delegationFee);
@@ -185,7 +183,6 @@ contract KyberPoolMaster is Ownable {
             }
 
             delegationFees.push(DFeeData(fromEpoch, _fee, false));
-            delegationFeesLength++;
         }
         emit CommitNewFees(fromEpoch.sub(1), _fee);
     }
@@ -261,6 +258,10 @@ contract KyberPoolMaster is Ownable {
     {
         uint256 curEpoch = kyberDAO.getCurrentEpochNumber();
         return getEpochDFeeData(curEpoch);
+    }
+
+    function delegationFeesLength() public view returns (uint256) {
+        return delegationFees.length;
     }
 
     function claimErc20Tokens(address _token, address _to) external onlyOwner {
