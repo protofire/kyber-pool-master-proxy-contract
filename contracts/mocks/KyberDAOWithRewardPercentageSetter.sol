@@ -1,10 +1,12 @@
 pragma solidity 0.6.6;
 
+import "./KyberDAOHandleCurrentEpoch.sol";
 
-contract KyberDAOWithRewardPercentageSetter {
+
+contract KyberDAOWithRewardPercentageSetter is KyberDAOHandleCurrentEpoch {
     mapping(address => mapping(uint256 => uint256)) public stakerRewardPercentage;
 
-    constructor() public {}
+    constructor() public KyberDAOHandleCurrentEpoch() {}
 
     function getStakerRewardPercentageInPrecision(address staker, uint256 epoch)
         public

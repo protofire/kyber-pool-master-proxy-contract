@@ -1,8 +1,9 @@
 const KyberPoolMaster = artifacts.require('KyberPoolMaster');
+const KyberDAO = artifacts.require('KyberDAOHandleCurrentEpoch');
 const TestToken = artifacts.require('Token.sol');
 
 const {expect} = require('chai');
-const {expectRevert} = require('@openzeppelin/test-helpers');
+const {expectRevert, expectEvent} = require('@openzeppelin/test-helpers');
 const {precisionUnits} = require('./helper.js');
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
@@ -108,9 +109,10 @@ contract('KyberPoolMaster deployment', async (accounts) => {
     });
 
     it('should set the right parameters', async () => {
+      const kyberDAO = await KyberDAO.new();
       kyberPoolMaster = await KyberPoolMaster.new(
         NO_ZERO_ADDRESS,
-        NO_ZERO_ADDRESS,
+        kyberDAO.address,
         NO_ZERO_ADDRESS,
         NO_ZERO_ADDRESS,
         2,
@@ -118,17 +120,17 @@ contract('KyberPoolMaster deployment', async (accounts) => {
         {from: poolMasterOwner}
       );
 
-      const kncToken = await kyberPoolMaster.kncToken();
-      expect(kncToken).to.equal(NO_ZERO_ADDRESS);
+      const kncTokenAddress = await kyberPoolMaster.kncToken();
+      expect(kncTokenAddress).to.equal(NO_ZERO_ADDRESS);
 
-      const kyberDAO = await kyberPoolMaster.kyberDAO();
-      expect(kyberDAO).to.equal(NO_ZERO_ADDRESS);
+      const kyberDAOAddress = await kyberPoolMaster.kyberDAO();
+      expect(kyberDAOAddress).to.equal(kyberDAO.address);
 
-      const kyberStaking = await kyberPoolMaster.kyberStaking();
-      expect(kyberStaking).to.equal(NO_ZERO_ADDRESS);
+      const kyberStakingAddress = await kyberPoolMaster.kyberStaking();
+      expect(kyberStakingAddress).to.equal(NO_ZERO_ADDRESS);
 
-      const kyberFeeHandler = await kyberPoolMaster.kyberFeeHandler();
-      expect(kyberFeeHandler).to.equal(NO_ZERO_ADDRESS);
+      const kyberFeeHandlerAddress = await kyberPoolMaster.kyberFeeHandler();
+      expect(kyberFeeHandlerAddress).to.equal(NO_ZERO_ADDRESS);
 
       const epochNotice = await kyberPoolMaster.epochNotice();
       expect(epochNotice.toString()).to.equal('2');
@@ -154,6 +156,44 @@ contract('KyberPoolMaster deployment', async (accounts) => {
 
       mikeBalance = await erc20.balanceOf(mike);
       expect(mikeBalance.toString()).to.equal(mulPrecision(1000000).toString());
+    });
+  });
+
+  describe('ownership', () => {
+    before('one time init', async () => {
+      const kyberDAO = await KyberDAO.new();
+      kyberPoolMaster = await KyberPoolMaster.new(
+        NO_ZERO_ADDRESS,
+        kyberDAO.address,
+        NO_ZERO_ADDRESS,
+        NO_ZERO_ADDRESS,
+        2,
+        1,
+        {from: poolMasterOwner}
+      );
+    });
+
+    it('should have the right owner', async () => {
+      const owner = await kyberPoolMaster.owner();
+      expect(owner).to.equal(poolMasterOwner);
+    });
+
+    it('non owner should not be able to transfer ownership', async () => {
+      await expectRevert(
+        kyberPoolMaster.transferOwnership(mike, {from: mike}),
+        'Ownable: caller is not the owner'
+      );
+    });
+
+    it('owner should be able to transfer ownership', async () => {
+      const receipt = await kyberPoolMaster.transferOwnership(mike, {
+        from: poolMasterOwner,
+      });
+
+      expectEvent(receipt, 'OwnershipTransferred', {
+        previousOwner: poolMasterOwner,
+        newOwner: mike,
+      });
     });
   });
 });

@@ -1,4 +1,4 @@
-const KyberPoolMaster = artifacts.require('KyberPoolMasterWithClaimOnlyNewFee');
+const KyberPoolMaster = artifacts.require('KyberPoolMaster');
 const KyberDAO = artifacts.require('KyberDAOHandleCurrentEpoch');
 
 const {expect} = require('chai');
@@ -24,6 +24,8 @@ contract('KyberPoolMaster delegationFee', async (accounts) => {
     mike = accounts[4];
 
     kyberDAO = await KyberDAO.new();
+    await kyberDAO.setCurrentEpochNumber(2);
+
     kyberPoolMaster = await KyberPoolMaster.new(
       NO_ZERO_ADDRESS,
       kyberDAO.address,
@@ -35,7 +37,24 @@ contract('KyberPoolMaster delegationFee', async (accounts) => {
     );
   });
 
-  describe('delegationFee setting', () => {
+  describe('delegation fees', () => {
+    it('should set the right values when deploying the contract', async () => {
+      expectEvent.inConstruction(kyberPoolMaster, 'CommitNewFees', {
+        deadline: '2',
+        feeRate: '1',
+      });
+
+      expectEvent.inConstruction(kyberPoolMaster, 'NewFees', {
+        fromEpoch: '2',
+        feeRate: '1',
+      });
+
+      const {fromEpoch, fee, applied} = await kyberPoolMaster.delegationFee();
+      expect(fromEpoch.toString()).to.equal('2');
+      expect(fee.toString()).to.equal('1');
+      expect(applied).to.equal(true);
+    });
+
     it('non owner should not be able to create a new delegationFee', async () => {
       await expectRevert(
         kyberPoolMaster.commitNewFee(2, {from: notOwner}),
@@ -48,7 +67,7 @@ contract('KyberPoolMaster delegationFee', async (accounts) => {
         from: poolMasterOwner,
       });
       expectEvent(receipt, 'CommitNewFees', {
-        deadline: '1',
+        deadline: '3',
         feeRate: '2',
       });
 
@@ -56,7 +75,7 @@ contract('KyberPoolMaster delegationFee', async (accounts) => {
       expect(delegationFeesLength.toString()).to.equal('2');
 
       const delegationFee = await kyberPoolMaster.delegationFees(1);
-      expect(delegationFee.fromEpoch.toString()).to.equal('2');
+      expect(delegationFee.fromEpoch.toString()).to.equal('4');
       expect(delegationFee.fee.toString()).to.equal('2');
       expect(delegationFee.applied).to.equal(false);
     });
@@ -66,63 +85,56 @@ contract('KyberPoolMaster delegationFee', async (accounts) => {
         from: poolMasterOwner,
       });
       expectEvent(receipt, 'CommitNewFees', {
-        deadline: '1',
+        deadline: '3',
         feeRate: '3',
       });
 
       const delegationFee = await kyberPoolMaster.delegationFees(1);
-      expect(delegationFee.fromEpoch.toString()).to.equal('2');
+      expect(delegationFee.fromEpoch.toString()).to.equal('4');
       expect(delegationFee.fee.toString()).to.equal('3');
       expect(delegationFee.applied).to.equal(false);
     });
 
     it('should rewrite the pending delegationFee fee and fromEpoch when create a delegationFee with one still pending in the same epoch', async () => {
       const curEpoch = await kyberDAO.getCurrentEpochNumber();
-      await kyberDAO.setCurrentEpochNumber(curEpoch + 1);
+      await kyberDAO.setCurrentEpochNumber(Number(curEpoch) + 1);
 
       const receipt = await kyberPoolMaster.commitNewFee(5, {
         from: poolMasterOwner,
       });
       expectEvent(receipt, 'CommitNewFees', {
-        deadline: '2',
+        deadline: '4',
         feeRate: '5',
       });
 
       const delegationFee = await kyberPoolMaster.delegationFees(1);
-      expect(delegationFee.fromEpoch.toString()).to.equal('3');
+      expect(delegationFee.fromEpoch.toString()).to.equal('5');
       expect(delegationFee.fee.toString()).to.equal('5');
       expect(delegationFee.applied).to.equal(false);
-    });
-
-    it('non owner should not be able to apply a new delegationFee', async () => {
-      await expectRevert(
-        kyberPoolMaster.applyPendingFee({from: notOwner}),
-        'Ownable: caller is not the owner'
-      );
     });
 
     it('should not apply a pending delegationFee early ', async () => {
       await kyberPoolMaster.applyPendingFee({from: poolMasterOwner});
 
       const delegationFee = await kyberPoolMaster.delegationFees(1);
-      expect(delegationFee.fromEpoch.toString()).to.equal('3');
+      expect(delegationFee.fromEpoch.toString()).to.equal('5');
       expect(delegationFee.fee.toString()).to.equal('5');
       expect(delegationFee.applied).to.equal(false);
     });
 
-    it('should apply a pending delegationFee if the epoch is beyond the deadLine', async () => {
-      await kyberDAO.setCurrentEpochNumber(3);
+    it('anyone should be able to apply a pending delegationFee if the epoch is beyond the deadLine', async () => {
+      await kyberDAO.setCurrentEpochNumber(5);
 
       const receipt = await kyberPoolMaster.applyPendingFee({
-        from: poolMasterOwner,
+        from: notOwner,
       });
       expectEvent(receipt, 'NewFees', {
-        fromEpoch: '3',
+        fromEpoch: '5',
         feeRate: '5',
       });
 
       const delegationFee = await kyberPoolMaster.delegationFees(1);
-      expect(delegationFee.fromEpoch.toString()).to.equal('3');
+      expect(delegationFee.fromEpoch.toString()).to.equal('5');
       expect(delegationFee.fee.toString()).to.equal('5');
       expect(delegationFee.applied).to.equal(true);
     });
@@ -132,22 +144,22 @@ contract('KyberPoolMaster delegationFee', async (accounts) => {
         from: poolMasterOwner,
       });
       expectEvent(receipt1, 'CommitNewFees', {
-        deadline: '4',
+        deadline: '6',
         feeRate: '1',
       });
 
-      await kyberDAO.setCurrentEpochNumber(5);
+      await kyberDAO.setCurrentEpochNumber(7);
 
       const receipt2 = await kyberPoolMaster.commitNewFee(2, {
         from: poolMasterOwner,
       });
       expectEvent(receipt2, 'CommitNewFees', {
-        deadline: '6',
+        deadline: '8',
         feeRate: '2',
       });
 
       expectEvent(receipt2, 'NewFees', {
-        fromEpoch: '5',
+        fromEpoch: '7',
         feeRate: '1',
       });
 
@@ -155,14 +167,33 @@ contract('KyberPoolMaster delegationFee', async (accounts) => {
       expect(delegationFeesLength.toString()).to.equal('4');
 
       const prevDelegationFee = await kyberPoolMaster.delegationFees(2);
-      expect(prevDelegationFee.fromEpoch.toString()).to.equal('5');
+      expect(prevDelegationFee.fromEpoch.toString()).to.equal('7');
       expect(prevDelegationFee.fee.toString()).to.equal('1');
       expect(prevDelegationFee.applied).to.equal(true);
 
       const pendingDelegationFee = await kyberPoolMaster.delegationFees(3);
-      expect(pendingDelegationFee.fromEpoch.toString()).to.equal('7');
+      expect(pendingDelegationFee.fromEpoch.toString()).to.equal('9');
       expect(pendingDelegationFee.fee.toString()).to.equal('2');
       expect(pendingDelegationFee.applied).to.equal(false);
+    });
+
+    it('should get the right fees', async () => {
+      await kyberDAO.setCurrentEpochNumber(9);
+
+      const current = await kyberPoolMaster.delegationFee();
+      expect(current.fromEpoch.toString()).to.equal('9');
+      expect(current.fee.toString()).to.equal('2');
+      expect(current.applied).to.equal(false);
+
+      const epochData = await kyberPoolMaster.getEpochDFeeData(7);
+      expect(epochData.fromEpoch.toString()).to.equal('7');
+      expect(epochData.fee.toString()).to.equal('1');
+      expect(epochData.applied).to.equal(true);
+
+      const firstEpochData = await kyberPoolMaster.getEpochDFeeData(0);
+      expect(firstEpochData.fromEpoch.toString()).to.equal('2');
+      expect(firstEpochData.fee.toString()).to.equal('1');
+      expect(firstEpochData.applied).to.equal(true);
     });
   });
 });

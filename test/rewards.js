@@ -24,7 +24,7 @@ let poolMasterOwner;
 let notOwner;
 let mike;
 
-contract('KyberPoolMaster delegationFee', async (accounts) => {
+contract('KyberPoolMaster claiming', async (accounts) => {
   describe('#getUnclaimedRewards', () => {
     before('one time init', async () => {
       daoSetter = accounts[1];
