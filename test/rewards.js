@@ -69,8 +69,46 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       expect(unclaimed.toString()).to.equal('0');
     });
 
-    it('should return 0 if total reward for the epoch is 0');
+    it('should return 0 if total reward for the epoch is 0', async () => {
+      const calimedReward = await kyberPoolMaster.claimedPoolReward(2);
+      expect(calimedReward).to.equal(false);
 
-    it('should return unclaimed reward amount');
+      await kyberDAO.setStakerRewardPercentage(kyberPoolMaster.address, 2, 10);
+      const stakerReward = await kyberDAO.getStakerRewardPercentageInPrecision(
+        kyberPoolMaster.address,
+        2
+      );
+      expect(stakerReward.toString()).to.equal('10');
+
+      await kyberFeeHandler.setRewardsPerEpoch(2, 0);
+      const rewardPerEpoch = await kyberFeeHandler.rewardsPerEpoch(2);
+      expect(rewardPerEpoch.toString()).to.equal('0');
+
+      const unclaimed = await kyberPoolMaster.getUnclaimedRewards(2);
+      expect(unclaimed.toString()).to.equal('0');
+    });
+
+    it('should return unclaimed reward amount', async () => {
+      const calimedReward = await kyberPoolMaster.claimedPoolReward(2);
+      expect(calimedReward).to.equal(false);
+
+      await kyberDAO.setStakerRewardPercentage(
+        kyberPoolMaster.address,
+        2,
+        '200000000000000000'
+      ); // 20%
+      const stakerReward = await kyberDAO.getStakerRewardPercentageInPrecision(
+        kyberPoolMaster.address,
+        2
+      );
+      expect(stakerReward.toString()).to.equal('200000000000000000'); // 20%
+
+      await kyberFeeHandler.setRewardsPerEpoch(2, '3000000000000000000'); // 3ETH
+      const rewardPerEpoch = await kyberFeeHandler.rewardsPerEpoch(2);
+      expect(rewardPerEpoch.toString()).to.equal('3000000000000000000');
+
+      const unclaimed = await kyberPoolMaster.getUnclaimedRewards(2);
+      expect(unclaimed.toString()).to.equal('600000000000000000'); // 3ETH -> 20% = 0.6ETH
+    });
   });
 });
