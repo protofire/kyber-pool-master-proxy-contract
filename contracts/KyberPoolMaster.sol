@@ -180,7 +180,9 @@ contract KyberPoolMaster is Ownable {
             lastFee.fromEpoch = fromEpoch;
             lastFee.fee = _fee;
         } else {
-            applyFee(lastFee);
+            if (!lastFee.applied) {
+                applyFee(lastFee);
+            }
 
             delegationFees.push(DFeeData(fromEpoch, _fee, false));
             delegationFeesLength++;
@@ -195,7 +197,7 @@ contract KyberPoolMaster is Ownable {
         DFeeData storage lastFee = delegationFees[delegationFees.length - 1];
         uint256 curEpoch = kyberDAO.getCurrentEpochNumber();
 
-        if (lastFee.fromEpoch <= curEpoch && lastFee.applied == false) {
+        if (lastFee.fromEpoch <= curEpoch && !lastFee.applied) {
             applyFee(lastFee);
         }
     }
