@@ -305,7 +305,7 @@ contract KyberPoolMaster is Ownable {
 
         uint256 initialBalance = address(this).balance;
 
-        kiberDAO.claimReward(address(this), epoch);
+        kyberDAO.claimReward(address(this), epoch);
 
         uint256 totalRewards = address(this).balance.sub(initialBalance);
 
@@ -321,9 +321,9 @@ contract KyberPoolMaster is Ownable {
             address delegatedAddr
         ) = kyberStaking.getStakerDataForPastEpoch(address(this), epoch);
 
-        DFeeData storage delegationFee = getEpochDFeeData(fee);
+        DFeeData storage epochDFee = delegationFees[getEpochDFeeDataId(epoch)];
 
-        uint256 totalFee = totalRewards.mul(deledatioFee.fee).div(
+        uint256 totalFee = totalRewards.mul(epochDFee.fee).div(
             MAX_DELEGATION_FEE
         );
         uint256 rewardsAfterFee = totalRewards.sub(totalFee);
@@ -336,6 +336,7 @@ contract KyberPoolMaster is Ownable {
         uint256 poolMasterShare = totalRewards.sub(poolMembersShare); // fee + poolMaster stake share
 
         // distribute poolMasterRewards to poolMaster
+        address payable poolMaster = payable(owner());
         require(
             poolMaster.send(poolMasterShare),
             "cRMaste: poolMaster share transfer failed"
@@ -344,24 +345,19 @@ contract KyberPoolMaster is Ownable {
         claimedPoolReward[epoch] = true;
         memberRewards[epoch] = poolMembersShare;
 
-        if (!delegationFee.applied) {
-            applyFee(delegationFee);
+        if (!epochDFee.applied) {
+            applyFee(epochDFee);
         }
 
-        emit MasterClaimReward(
-            poolMaster,
-            totalRewards,
-            delegationFee.fee,
-            epoch
-        );
+        emit MasterClaimReward(poolMaster, totalRewards, epochDFee.fee, epoch);
     }
 
     // Utils
     function calculateRewardsShare(
         uint256 stake,
         uint256 totalStake,
-        uint256 rewargs
-    ) internal view returns (uint256) {
+        uint256 rewards
+    ) internal pure returns (uint256) {
         return stake.mul(rewards).div(totalStake);
     }
 
@@ -378,7 +374,7 @@ contract KyberPoolMaster is Ownable {
     receive() external payable {
         require(
             msg.sender == address(kyberFeeHandler),
-            "can only receibe ETH from Kyber"
+            "only accept ETH from Kyber"
         );
     }
 }

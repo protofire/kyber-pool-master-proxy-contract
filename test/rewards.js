@@ -11,6 +11,8 @@ const KyberFeeHandlerWithRewardPerEposhSetter = artifacts.require(
 const {expect} = require('chai');
 const {expectEvent, expectRevert} = require('@openzeppelin/test-helpers');
 
+const Reverter = require('./utils/reverter');
+
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const NO_ZERO_ADDRESS = '0x0000000000000000000000000000000000000001';
 const MAX_DELEGATION_FEE = 10000;
@@ -23,8 +25,14 @@ let kncToken;
 let poolMasterOwner;
 let notOwner;
 let mike;
+let reverter;
 
 contract('KyberPoolMaster claiming', async (accounts) => {
+  before('one time init', async () => {
+    reverter = new Reverter(web3);
+    await reverter.snapshot();
+  });
+
   describe('#getUnclaimedRewards', () => {
     before('one time init', async () => {
       daoSetter = accounts[1];
@@ -114,32 +122,79 @@ contract('KyberPoolMaster claiming', async (accounts) => {
 
   describe('#claimRewardsMaster', () => {
     beforeEach('running before each test', async () => {
-      await updateCurrentBlockAndTimestamp();
-      console.log(
-        `chain start block: ${currentBlock}, start time: ${currentTimestamp}`
+      await reverter.revert();
+
+      daoSetter = accounts[1];
+      poolMasterOwner = accounts[2];
+      notOwner = accounts[3];
+      mike = accounts[4];
+
+      kyberDAO = await KyberDAOWithRewardPercentageSetter.new();
+      kyberFeeHandler = await KyberFeeHandlerWithRewardPerEposhSetter.new();
+      kyberPoolMaster = await KyberPoolMaster.new(
+        NO_ZERO_ADDRESS,
+        kyberDAO.address,
+        NO_ZERO_ADDRESS,
+        kyberFeeHandler.address,
+        2,
+        1,
+        {from: poolMasterOwner}
       );
-      blockTime = 16; // each block is mined after 16s
     });
 
-    it('should only be able to reveive ETH from KyberFeeHandler');
-    it('should revert if epoch rewards has been already claimed');
-    it('should revert if no unclaimed reward for the epoch');
+    it('should only be able to receive ETH from KyberFeeHandler', async () => {
+      await expectRevert(
+        kyberPoolMaster.send('10', {from: mike}),
+        'only accept ETH from Kyber'
+      );
+    });
+
+    it('should revert if epoch rewards has been already claimed', async () => {
+      await kyberPoolMaster.setClaimedPoolReward(1);
+      const calimedReward = await kyberPoolMaster.claimedPoolReward(1);
+      expect(calimedReward).to.equal(true);
+
+      await expectRevert(
+        kyberPoolMaster.claimRewardsMaster(1, {from: mike}),
+        'cRMaster: rewards already claimed'
+      );
+    });
+
+    it('should revert if no unclaimed reward for the epoch', async () => {
+      // this makes getUnclaimedRewards to return 0
+      await kyberDAO.setStakerRewardPercentage(kyberPoolMaster.address, 1, 0);
+      await expectRevert(
+        kyberPoolMaster.claimRewardsMaster(1, {from: mike}),
+        'cRMaster: no rewards to claim'
+      );
+    });
+
     it('should revert if claimed reward lower than expected'); // TBD - is this check really necessary
+
     it('should revert if poolMaster can receive its share');
+
     it(
       "should only transfer fee to poolMaster if it hasn't stake for the epoch"
     );
+
     it(
       "epoch memberRewards should be totalReward - fee if poolMaster hasn't stake for the epoch"
     );
+
     it(
       'should transfer fee + share to poolMaster if it has stak for the epoch'
     );
+
     it(
       'epoch memberRewards should be totalReward - fee - poolMasterShare if poolMaster has stak for the epoch'
     );
-    it('should distribute rewards the right way on multiple scenarios');
+
     it('should apply the fee used if it was pending');
+
     it('should emit MasterClaimReward event when everithing ended right');
+  });
+
+  describe('rewards the right way on multiple scenarios', async () => {
+    it('should distribute rewards');
   });
 });
