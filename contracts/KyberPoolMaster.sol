@@ -31,6 +31,9 @@ contract KyberPoolMaster is Ownable {
     // Mapping of if poolMaster has claimed reward for an epoch for the pool
     mapping(uint256 => bool) public claimedPoolReward;
 
+    // Amount of rewards owed to poolMembers for an epoch
+    mapping(uint256 => uint256) public memberRewards;
+
     // Fee charged by poolMasters to poolMembers for services
     // Denominated in 1e4 units
     // 100 = 1%
@@ -41,9 +44,6 @@ contract KyberPoolMaster is Ownable {
     }
 
     DFeeData[] public delegationFees;
-
-    // Amount of rewards owed to poolMembers for an epoch
-    mapping(uint256 => uint256) public memberRewards;
 
     IERC20 public kncToken;
     IExtendedKyberDAO public kyberDAO;
@@ -66,6 +66,7 @@ contract KyberPoolMaster is Ownable {
     );
 
     /**
+     * @notice Address deploying this contract should be able to receive ETH, owner can be changed using transferOwnership method
      * @param _kncToken KNC Token address
      * @param _kyberDAO KyberDAO contract address
      * @param _kyberStaking KyberStaking contract address
@@ -291,7 +292,78 @@ contract KyberPoolMaster is Ownable {
         return unclaimed;
     }
 
+    /**
+     * @dev  Claims rewards and distribute fees and its share to poolMaster
+     * @param epoch for which rewards are being claimed
+     */
+    function claimRewardsMaster(uint256 epoch) public {
+        require(!claimedPoolReward[epoch], "cRMaster: rewards already claimed");
+
+        uint256 unclaimed = getUnclaimedRewards(epoch);
+
+        require(unclaimed > 0, "cRMaster: no rewards to claim");
+
+        uint256 initialBalance = address(this).balance;
+
+        kiberDAO.claimReward(address(this), epoch);
+
+        uint256 totalRewards = address(this).balance.sub(initialBalance);
+
+        // TODO - define if this check is really necessary
+        require(
+            totalRewards >= unclaimed,
+            "cRMaster: claimed reward lower than expected"
+        );
+
+        (
+            uint256 stake,
+            uint256 delegatedStake,
+            address delegatedAddr
+        ) = kyberStaking.getStakerDataForPastEpoch(address(this), epoch);
+
+        DFeeData storage delegationFee = getEpochDFeeData(fee);
+
+        uint256 totalFee = totalRewards.mul(deledatioFee.fee).div(
+            MAX_DELEGATION_FEE
+        );
+        uint256 rewardsAfterFee = totalRewards.sub(totalFee);
+
+        uint256 poolMembersShare = calculateRewardsShare(
+            delegatedStake,
+            stake.add(delegatedStake),
+            rewardsAfterFee
+        );
+        uint256 poolMasterShare = totalRewards.sub(poolMembersShare); // fee + poolMaster stake share
+
+        // distribute poolMasterRewards to poolMaster
+        require(
+            poolMaster.send(poolMasterShare),
+            "cRMaste: poolMaster share transfer failed"
+        );
+
+        claimedPoolReward[epoch] = true;
+        memberRewards[epoch] = poolMembersShare;
+
+        if (!delegationFee.applied) {
+            applyFee(delegationFee);
+        }
+
+        emit MasterClaimReward(
+            poolMaster,
+            totalRewards,
+            delegationFee.fee,
+            epoch
+        );
+    }
+
     // Utils
+    function calculateRewardsShare(
+        uint256 stake,
+        uint256 totalStake,
+        uint256 rewargs
+    ) internal view returns (uint256) {
+        return stake.mul(rewards).div(totalStake);
+    }
 
     function delegationFeesLength() public view returns (uint256) {
         return delegationFees.length;
@@ -303,5 +375,10 @@ contract KyberPoolMaster is Ownable {
         SafeERC20.safeTransfer(token, _to, balance);
     }
 
-    receive() external payable {}
+    receive() external payable {
+        require(
+            msg.sender == address(kyberFeeHandler),
+            "can only receibe ETH from Kyber"
+        );
+    }
 }

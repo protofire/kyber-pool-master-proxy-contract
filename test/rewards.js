@@ -111,4 +111,35 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       expect(unclaimed.toString()).to.equal('600000000000000000'); // 3ETH -> 20% = 0.6ETH
     });
   });
+
+  describe('#claimRewardsMaster', () => {
+    beforeEach('running before each test', async () => {
+      await updateCurrentBlockAndTimestamp();
+      console.log(
+        `chain start block: ${currentBlock}, start time: ${currentTimestamp}`
+      );
+      blockTime = 16; // each block is mined after 16s
+    });
+
+    it('should only be able to reveive ETH from KyberFeeHandler');
+    it('should revert if epoch rewards has been already claimed');
+    it('should revert if no unclaimed reward for the epoch');
+    it('should revert if claimed reward lower than expected'); // TBD - is this check really necessary
+    it('should revert if poolMaster can receive its share');
+    it(
+      "should only transfer fee to poolMaster if it hasn't stake for the epoch"
+    );
+    it(
+      "epoch memberRewards should be totalReward - fee if poolMaster hasn't stake for the epoch"
+    );
+    it(
+      'should transfer fee + share to poolMaster if it has stak for the epoch'
+    );
+    it(
+      'epoch memberRewards should be totalReward - fee - poolMasterShare if poolMaster has stak for the epoch'
+    );
+    it('should distribute rewards the right way on multiple scenarios');
+    it('should apply the fee used if it was pending');
+    it('should emit MasterClaimReward event when everithing ended right');
+  });
 });
