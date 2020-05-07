@@ -59,10 +59,12 @@ contract KyberPoolMaster is Ownable {
         uint256 indexed epoch
     );
     event MasterClaimReward(
+        uint256 indexed epoch,
         address indexed poolMaster,
-        uint256 reward,
-        uint256 fees,
-        uint256 indexed epoch
+        uint256 totalRewards,
+        uint256 feeApplied,
+        uint256 feeAmount,
+        uint256 poolMasterShare
     );
 
     /**
@@ -335,6 +337,9 @@ contract KyberPoolMaster is Ownable {
         );
         uint256 poolMasterShare = totalRewards.sub(poolMembersShare); // fee + poolMaster stake share
 
+        claimedPoolReward[epoch] = true;
+        memberRewards[epoch] = poolMembersShare;
+
         // distribute poolMasterRewards to poolMaster
         address payable poolMaster = payable(owner());
         require(
@@ -342,14 +347,18 @@ contract KyberPoolMaster is Ownable {
             "cRMaste: poolMaster share transfer failed"
         );
 
-        claimedPoolReward[epoch] = true;
-        memberRewards[epoch] = poolMembersShare;
-
         if (!epochDFee.applied) {
             applyFee(epochDFee);
         }
 
-        emit MasterClaimReward(poolMaster, totalRewards, epochDFee.fee, epoch);
+        emit MasterClaimReward(
+            epoch,
+            poolMaster,
+            totalRewards,
+            epochDFee.fee,
+            totalFee,
+            poolMasterShare.sub(totalFee)
+        );
     }
 
     // Utils

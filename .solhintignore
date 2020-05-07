@@ -1,4 +1,4 @@
 contracts/lib/
-contracts/mock/
+contracts/mocks/
 contracts/test/
 contracts/Migrations.sol
