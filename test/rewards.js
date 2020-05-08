@@ -139,30 +139,30 @@ contract('KyberPoolMaster claiming', async (accounts) => {
     });
   });
 
-  describe('#claimRewardsMaster', () => {
-    const prepareEpochForClaim = async ({
+  const prepareEpochForClaim = async ({
+    epoch,
+    staker,
+    stakerRewardPercentage,
+    rewardsPerEpoch,
+    stakerStake = '0',
+    delegatedStake = '1',
+  }) => {
+    await kyberDAO.setStakerRewardPercentage(
+      staker,
+      epoch,
+      stakerRewardPercentage
+    );
+    await kyberFeeHandler.setRewardsPerEpoch(epoch, rewardsPerEpoch);
+    await kyberStaking.setStakerData(
       epoch,
       staker,
-      stakerRewardPercentage,
-      rewardsPerEpoch,
-      stakerStake = '0',
-      delegatedStake = '1',
-    }) => {
-      await kyberDAO.setStakerRewardPercentage(
-        staker,
-        epoch,
-        stakerRewardPercentage
-      );
-      await kyberFeeHandler.setRewardsPerEpoch(epoch, rewardsPerEpoch);
-      await kyberStaking.setStakerData(
-        epoch,
-        staker,
-        stakerStake,
-        delegatedStake,
-        staker
-      );
-    };
+      stakerStake,
+      delegatedStake,
+      staker
+    );
+  };
 
+  describe('#claimRewardsMaster', () => {
     beforeEach('running before each test', async () => {
       await reverter.revert();
 
@@ -321,7 +321,7 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       expect(claimedPoolReward).to.equal(true);
     });
 
-    it('should transfer fee + share to poolMaster if it has stak for the epoch', async () => {
+    it('should transfer fee + share to poolMaster if it has stake for the epoch', async () => {
       // fee 1%
       // rewardPerEpoch 3ETH
       // stakerRewardPercentage 20%
@@ -378,6 +378,59 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       expect(claimedPoolReward).to.equal(true);
     });
 
+    it('poolMaster should receive all the reward if no one has delegated its stake to him', async () => {
+      // fee 1%
+      // rewardPerEpoch 3ETH
+      // stakerRewardPercentage 20%
+      // unclaimReward = 3 ETH x 20 / 100 = 0.6 ETH
+      // delegatedStake 0
+      // stake 1
+      // poolMasterShare = unclaimReward
+      // poolMembersShare 0
+      const rewardsPerEpoch = ether('3');
+      const unclaimReward = ether('0.6');
+      const feeAmount = ether('0.006');
+      const share = ether('0.297');
+
+      await prepareEpochForClaim({
+        epoch: 1,
+        staker: kyberPoolMaster.address,
+        stakerRewardPercentage: '200000000000000000', // 20%
+        rewardsPerEpoch: rewardsPerEpoch, // 3ETH,
+        stakerStake: '1',
+        delegatedStake: '0',
+      });
+
+      const poolMasterOwnerBalance = await balance.current(poolMasterOwner);
+
+      const receipt = await kyberPoolMaster.claimRewardsMaster(1, {from: mike});
+      expectEvent(receipt, 'MasterClaimReward', {
+        epoch: '1',
+        poolMaster: poolMasterOwner,
+        totalRewards: unclaimReward,
+        feeApplied: '100',
+        feeAmount: feeAmount,
+        poolMasterShare: new BN(unclaimReward)
+          .sub(new BN(feeAmount))
+          .toString(),
+      });
+
+      const poolMasterOwnerBalanceAfter = await balance.current(
+        poolMasterOwner
+      );
+      const expectedBalance = poolMasterOwnerBalance.add(new BN(unclaimReward));
+
+      expect(poolMasterOwnerBalanceAfter.toString()).to.equal(
+        expectedBalance.toString()
+      );
+
+      const poolMembersShare = await kyberPoolMaster.memberRewards(1);
+      expect(poolMembersShare.toString()).to.equal('0');
+
+      const claimedPoolReward = await kyberPoolMaster.claimedPoolReward(1);
+      expect(claimedPoolReward).to.equal(true);
+    });
+
     it('should apply the fee used if it was pending', async () => {
       await prepareEpochForClaim({
         epoch: 2,
@@ -388,7 +441,6 @@ contract('KyberPoolMaster claiming', async (accounts) => {
         delegatedStake: '1',
       });
 
-      // const curEpoch = await kyberDAO.getCurrentEpochNumber();
       // new fee 2%
       await kyberPoolMaster.commitNewFee(200, {
         from: poolMasterOwner,
@@ -401,11 +453,218 @@ contract('KyberPoolMaster claiming', async (accounts) => {
         feeRate: '200',
       });
     });
-
-    it('should emit MasterClaimReward event when everithing ended right');
   });
 
-  describe('rewards the right way on multiple scenarios', async () => {
-    it('should distribute rewards');
+  describe('rewards distribution on multiple scenarios', async () => {
+    const prepareFee = async (fee) => {
+      await kyberPoolMaster.commitNewFee(fee, {
+        from: poolMasterOwner,
+      });
+      const curEpoch = await kyberDAO.getCurrentEpochNumber();
+      const nextEpoch = Number(curEpoch) + 2;
+      await kyberDAO.setCurrentEpochNumber(nextEpoch);
+      await kyberPoolMaster.applyPendingFee({from: poolMasterOwner});
+
+      return nextEpoch;
+    };
+    const prepareScenario = async (
+      epoch,
+      rewardsPerEpoch,
+      stakerRewardPercentage,
+      poolMasterStakesDelegatedStakes
+    ) => {
+      // console.log('prepareScenario', epoch, rewardsPerEpoch, stakerRewardPercentage, poolMasterStakesDelegatedStakes)
+      await prepareEpochForClaim({
+        epoch,
+        staker: kyberPoolMaster.address,
+        stakerRewardPercentage,
+        rewardsPerEpoch, // 3ETH,
+        stakerStake: poolMasterStakesDelegatedStakes[0],
+        delegatedStake: poolMasterStakesDelegatedStakes[1],
+      });
+    };
+
+    const checkResults = async (
+      epoch,
+      fee,
+      rewardPerEpoch,
+      stakerRewardPercentage,
+      poolMasterStakesDelegatedStakes
+    ) => {
+      // 82     '1' '1000000'            '10000000000000000' [ 0, 1 ]
+
+      const poolMaster = new BN(poolMasterStakesDelegatedStakes[0]);
+      const delegatedStake = new BN(poolMasterStakesDelegatedStakes[1]);
+      const totalStake = poolMaster.add(delegatedStake);
+
+      const rewardsPerEpoch = ether('3');
+      const unclaimReward = new BN(rewardPerEpoch)
+        .mul(new BN(stakerRewardPercentage))
+        .div(ether('1')); // 1000000 * 10000000000000000 / 10^18 = 10000
+      const feeAmount = new BN(unclaimReward)
+        .mul(new BN(fee))
+        .div(new BN(10000)); // 10000 * 1 /
+      const poolMemberShare = delegatedStake
+        .mul(unclaimReward.sub(feeAmount))
+        .div(totalStake);
+      const poolMasterShare = unclaimReward.sub(poolMemberShare);
+
+      const poolMasterOwnerBalance = await balance.current(poolMasterOwner);
+
+      const receipt = await kyberPoolMaster.claimRewardsMaster(epoch, {
+        from: mike,
+      });
+      expectEvent(receipt, 'MasterClaimReward', {
+        epoch: epoch.toString(),
+        poolMaster: poolMasterOwner,
+        totalRewards: unclaimReward.toString(),
+        feeApplied: fee,
+        feeAmount: feeAmount.toString(),
+        poolMasterShare: poolMasterShare.sub(feeAmount).toString(),
+      });
+
+      const poolMasterOwnerBalanceAfter = await balance.current(
+        poolMasterOwner
+      );
+      const expectedBalance = poolMasterOwnerBalance.add(poolMasterShare);
+
+      expect(poolMasterOwnerBalanceAfter.toString()).to.equal(
+        expectedBalance.toString()
+      );
+
+      const epochPoolMembersShare = await kyberPoolMaster.memberRewards(epoch);
+      expect(epochPoolMembersShare.toString()).to.equal(
+        poolMemberShare.toString()
+      );
+
+      const claimedPoolReward = await kyberPoolMaster.claimedPoolReward(epoch);
+      expect(claimedPoolReward).to.equal(true);
+    };
+
+    before('one time', async () => {
+      await reverter.revert();
+
+      bank = accounts[0];
+      daoSetter = accounts[1];
+      poolMasterOwner = accounts[2];
+      notOwner = accounts[3];
+      mike = accounts[4];
+
+      kyberStaking = await KyberStakingWithgetStakerDataForPastEpoch.new();
+      kyberFeeHandler = await KyberFeeHandlerWithClaimStakerReward.new();
+      kyberDAO = await KyberDAOClaimReward.new(kyberFeeHandler.address);
+      kyberPoolMaster = await KyberPoolMaster.new(
+        NO_ZERO_ADDRESS,
+        kyberDAO.address,
+        kyberStaking.address,
+        kyberFeeHandler.address,
+        2,
+        1,
+        {from: poolMasterOwner}
+      );
+
+      await kyberFeeHandler.send('90000000000000000000000', {
+        from: accounts[5],
+      });
+      await kyberFeeHandler.send('90000000000000000000000', {
+        from: accounts[6],
+      });
+      await kyberFeeHandler.send('90000000000000000000000', {
+        from: accounts[7],
+      });
+      await kyberFeeHandler.send('90000000000000000000000', {
+        from: accounts[8],
+      });
+      await kyberFeeHandler.send('90000000000000000000000', {
+        from: accounts[8],
+      });
+      await kyberFeeHandler.send('90000000000000000000000', {
+        from: accounts[9],
+      });
+      await kyberFeeHandler.send('90000000000000000000000', {
+        from: accounts[10],
+      });
+      await kyberFeeHandler.send('90000000000000000000000', {
+        from: accounts[11],
+      });
+      await kyberFeeHandler.send('90000000000000000000000', {
+        from: accounts[12],
+      });
+      await kyberFeeHandler.send('90000000000000000000000', {
+        from: accounts[13],
+      });
+      await kyberFeeHandler.send('90000000000000000000000', {
+        from: accounts[14],
+      });
+      await kyberFeeHandler.send('90000000000000000000000', {
+        from: accounts[15],
+      });
+      await kyberFeeHandler.send('90000000000000000000000', {
+        from: accounts[16],
+      });
+      await kyberFeeHandler.send('90000000000000000000000', {
+        from: accounts[17],
+      });
+      await kyberFeeHandler.send('90000000000000000000000', {
+        from: accounts[18],
+      });
+      await kyberFeeHandler.send('90000000000000000000000', {
+        from: accounts[19],
+      });
+    });
+
+    const fees = ['1', '10', '100', '500', '900', '2500', '5000', '9000']; //0.01% 0.1% 1% 5% 9% 25% 50% 90%
+    const rewardPerEpochs = [
+      '1000',
+      '1000000',
+      '1000000000',
+      '1000000000000',
+      '1000000000000000',
+      '1000000000000000000',
+      '10000000000000000000',
+    ];
+    const stakerRewardPercentages = [
+      '1000000000000000',
+      '10000000000000000',
+      '100000000000000000',
+      '1000000000000000000',
+    ]; // 0.1%, 1%, 10%, 100%
+    const poolMasterStakesDelegatedStakes = [
+      [0, 1],
+      [1, 1],
+      [1, 10],
+      [1, 100],
+      [1, 1000],
+      [10, 1],
+      [100, 1],
+      [1000, 1],
+    ];
+
+    let scenario = 1;
+    for (let f = 0; f < fees.length; f++) {
+      for (let r = 0; r < rewardPerEpochs.length; r++) {
+        for (let s = 0; s < stakerRewardPercentages.length; s++) {
+          for (let p = 0; p < poolMasterStakesDelegatedStakes.length; p++) {
+            it(`should distribute rewards ${scenario}: ${fees[f]}-${rewardPerEpochs[r]}-${stakerRewardPercentages[s]}-${poolMasterStakesDelegatedStakes[p]}`, async () => {
+              const epoch = await prepareFee(fees[f]);
+              await prepareScenario(
+                epoch,
+                rewardPerEpochs[r],
+                stakerRewardPercentages[s],
+                poolMasterStakesDelegatedStakes[p]
+              );
+              await checkResults(
+                epoch,
+                fees[f],
+                rewardPerEpochs[r],
+                stakerRewardPercentages[s],
+                poolMasterStakesDelegatedStakes[p]
+              );
+            });
+            scenario++;
+          }
+        }
+      }
+    }
   });
 });
