@@ -32,7 +32,11 @@ contract KyberPoolMaster is Ownable {
     mapping(uint256 => bool) public claimedPoolReward;
 
     // Amount of rewards owed to poolMembers for an epoch
-    mapping(uint256 => uint256) public memberRewards;
+    struct Reward {
+        uint256 totalRewards;
+        uint256 totalStaked;
+    }
+    mapping(uint256 => Reward) public memberRewards;
 
     // Fee charged by poolMasters to poolMembers for services
     // Denominated in 1e4 units
@@ -338,7 +342,10 @@ contract KyberPoolMaster is Ownable {
         uint256 poolMasterShare = totalRewards.sub(poolMembersShare); // fee + poolMaster stake share
 
         claimedPoolReward[epoch] = true;
-        memberRewards[epoch] = poolMembersShare;
+        memberRewards[epoch] = Reward(
+            poolMembersShare,
+            stake.add(delegatedStake)
+        );
 
         // distribute poolMasterRewards to poolMaster
         address payable poolMaster = payable(owner());
@@ -359,6 +366,53 @@ contract KyberPoolMaster is Ownable {
             totalFee,
             poolMasterShare.sub(totalFee)
         );
+    }
+
+    /**
+     * @dev  Queries the amount of unclaimed rewards for the pool member
+     *       return 0 if PoolMaster has not called claimRewardMaster
+     *       return 0 if PoolMember has previously claimed reward for the epoch
+     *       return 0 if PoolMember has not stake for the epoch
+     *       return 0 if PoolMember has not delegated it stake to this contract for the epoch
+     * @param epoch for which epoch the memmber is querying unclaimed reward
+     */
+    function getUnclaimedRewardsMember(uint256 epoch)
+        public
+        view
+        returns (uint256)
+    {
+        if (!claimedPoolReward[epoch]) {
+            return 0;
+        }
+
+        address poolMember = msg.sender;
+
+        if (!claimedDelegateReward[epoch][poolMember]) {
+            return 0;
+        }
+
+        (
+            uint256 stake,
+            uint256 delegatedStake,
+            address delegatedAddr
+        ) = kyberStaking.getStakerDataForPastEpoch(poolMember, epoch);
+
+        if (stake == 0) {
+            return 0;
+        }
+
+        if (delegatedAddr != address(this)) {
+            return 0;
+        }
+
+        Reward memory rewardForEpoch = memberRewards[epoch];
+
+        return
+            calculateRewardsShare(
+                stake,
+                rewardForEpoch.totalStaked,
+                rewardForEpoch.totalRewards
+            );
     }
 
     // Utils

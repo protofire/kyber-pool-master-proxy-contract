@@ -313,7 +313,7 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       const expectedPoolMembersShare = new BN(unclaimReward).sub(
         new BN(feeAmount)
       );
-      expect(poolMembersShare.toString()).to.equal(
+      expect(poolMembersShare.totalRewards.toString()).to.equal(
         expectedPoolMembersShare.toString()
       );
 
@@ -370,7 +370,7 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       const expectedPoolMembersShare = new BN(unclaimReward)
         .sub(new BN(feeAmount))
         .div(new BN(2));
-      expect(poolMembersShare.toString()).to.equal(
+      expect(poolMembersShare.totalRewards.toString()).to.equal(
         expectedPoolMembersShare.toString()
       );
 
@@ -425,7 +425,7 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       );
 
       const poolMembersShare = await kyberPoolMaster.memberRewards(1);
-      expect(poolMembersShare.toString()).to.equal('0');
+      expect(poolMembersShare.totalRewards.toString()).to.equal('0');
 
       const claimedPoolReward = await kyberPoolMaster.claimedPoolReward(1);
       expect(claimedPoolReward).to.equal(true);
@@ -453,5 +453,46 @@ contract('KyberPoolMaster claiming', async (accounts) => {
         feeRate: '200',
       });
     });
+  });
+  describe('#getUnclaimedRewardsMember', () => {
+    beforeEach('running before each test', async () => {
+      await reverter.revert();
+
+      bank = accounts[0];
+      daoSetter = accounts[1];
+      poolMasterOwner = accounts[2];
+      notOwner = accounts[3];
+      mike = accounts[4];
+
+      kyberStaking = await KyberStakingWithgetStakerDataForPastEpoch.new();
+      kyberFeeHandler = await KyberFeeHandlerWithClaimStakerReward.new();
+      kyberDAO = await KyberDAOClaimReward.new(kyberFeeHandler.address);
+      kyberPoolMaster = await KyberPoolMaster.new(
+        NO_ZERO_ADDRESS,
+        kyberDAO.address,
+        kyberStaking.address,
+        kyberFeeHandler.address,
+        2,
+        100, // Denominated in 1e4 units - 100 = 1%
+        {from: poolMasterOwner}
+      );
+
+      poolMasterNoFallbackMock = await PoolMasterNoFallbackMock.new(
+        kyberPoolMaster.address,
+        {value: '10000000000000000000', from: bank}
+      );
+
+      await kyberFeeHandler.send('10000000000000000000', {from: bank});
+    });
+
+    it('should return 0 if PoolMaster has not called claimRewardMaster');
+    it(
+      'should return 0 if PoolMember has previously claimed reward for the epoch'
+    );
+    it('should return 0 if PoolMember has not stake for the epoch');
+    it(
+      'should return 0 if PoolMember has not delegated it stake to this contract for the epoch'
+    );
+    it('should return unclaimed poolMember reward amount');
   });
 });
