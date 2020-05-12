@@ -14,7 +14,6 @@ const KyberStakingWithgetStakerDataForPastEpoch = artifacts.require(
 );
 
 const PoolMasterNoFallbackMock = artifacts.require('PoolMasterNoFallbackMock');
-const Kamikaze = artifacts.require('Kamikaze');
 
 const {expect} = require('chai');
 const {
@@ -217,8 +216,6 @@ contract('KyberPoolMaster claiming', async (accounts) => {
         'cRMaster: no rewards to claim'
       );
     });
-
-    it('should revert if claimed reward lower than expected'); // TBD - is this check really necessary
 
     it('should revert if poolMaster can receive its share', async () => {
       await prepareEpochForClaim({

@@ -315,12 +315,6 @@ contract KyberPoolMaster is Ownable {
 
         uint256 totalRewards = address(this).balance.sub(initialBalance);
 
-        // TODO - define if this check is really necessary
-        require(
-            totalRewards >= unclaimed,
-            "cRMaster: claimed reward lower than expected"
-        );
-
         (
             uint256 stake,
             uint256 delegatedStake,
