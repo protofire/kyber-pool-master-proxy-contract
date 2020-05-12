@@ -58,9 +58,9 @@ contract KyberPoolMaster is Ownable {
     event CommitNewFees(uint256 deadline, uint256 feeRate);
     event NewFees(uint256 fromEpoch, uint256 feeRate);
     event MemberClaimReward(
+        uint256 indexed epoch,
         address indexed poolMember,
-        uint256 reward,
-        uint256 indexed epoch
+        uint256 reward
     );
     event MasterClaimReward(
         uint256 indexed epoch,
@@ -404,6 +404,38 @@ contract KyberPoolMaster is Ownable {
                 rewardForEpoch.totalStaked,
                 rewardForEpoch.totalRewards
             );
+    }
+
+    /**
+     * @dev Claims reward for poolMember has not claimed for an epoch previously and the poolMaster has claimed rewards for the pool
+     * @param epoch for which rewards are being claimed
+     */
+    function claimRewardMember(uint256 epoch) public {
+        require(
+            claimedPoolReward[epoch],
+            "cRMember: poolMaster has not claimed yet"
+        );
+
+        address poolMember = msg.sender;
+
+        require(
+            !claimedDelegateReward[epoch][poolMember],
+            "cRMember: rewards already claimed"
+        );
+
+        uint256 poolMemberShare = getUnclaimedRewardsMember(epoch);
+
+        require(poolMemberShare > 0, "cRMember: no rewards to claim");
+
+        claimedDelegateReward[epoch][poolMember] = true;
+
+        // distribute poolMember rewards share
+        require(
+            payable(poolMember).send(poolMemberShare),
+            "cRMember: poolMember share transfer failed"
+        );
+
+        emit MemberClaimReward(epoch, poolMember, poolMemberShare);
     }
 
     // Utils

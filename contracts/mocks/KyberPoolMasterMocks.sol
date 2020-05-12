@@ -13,6 +13,7 @@ contract KyberPoolMasterWithSetters is KyberPoolMaster {
         uint256 _delegationFee
     )
         public
+        payable
         KyberPoolMaster(
             _kncToken,
             _kyberDAO,
