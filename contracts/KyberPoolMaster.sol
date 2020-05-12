@@ -342,10 +342,7 @@ contract KyberPoolMaster is Ownable {
         uint256 poolMasterShare = totalRewards.sub(poolMembersShare); // fee + poolMaster stake share
 
         claimedPoolReward[epoch] = true;
-        memberRewards[epoch] = Reward(
-            poolMembersShare,
-            stake.add(delegatedStake)
-        );
+        memberRewards[epoch] = Reward(poolMembersShare, delegatedStake);
 
         // distribute poolMasterRewards to poolMaster
         address payable poolMaster = payable(owner());
@@ -387,7 +384,7 @@ contract KyberPoolMaster is Ownable {
 
         address poolMember = msg.sender;
 
-        if (!claimedDelegateReward[epoch][poolMember]) {
+        if (claimedDelegateReward[epoch][poolMember]) {
             return 0;
         }
 

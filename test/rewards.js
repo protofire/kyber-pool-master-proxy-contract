@@ -1,6 +1,4 @@
-const KyberPoolMaster = artifacts.require(
-  'KyberPoolMasterWithClaimedPoolRewardSetter'
-);
+const KyberPoolMaster = artifacts.require('KyberPoolMasterWithSetters');
 const KyberDAOWithRewardPercentageSetter = artifacts.require(
   'KyberDAOWithRewardPercentageSetter'
 );
@@ -485,14 +483,113 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       await kyberFeeHandler.send('10000000000000000000', {from: bank});
     });
 
-    it('should return 0 if PoolMaster has not called claimRewardMaster');
-    it(
-      'should return 0 if PoolMember has previously claimed reward for the epoch'
-    );
-    it('should return 0 if PoolMember has not stake for the epoch');
-    it(
-      'should return 0 if PoolMember has not delegated it stake to this contract for the epoch'
-    );
-    it('should return unclaimed poolMember reward amount');
+    it('should return 0 if PoolMaster has not called claimRewardMaster', async () => {
+      const calimedReward = await kyberPoolMaster.claimedPoolReward(1);
+      expect(calimedReward).to.equal(false);
+
+      const unclaimed = await kyberPoolMaster.getUnclaimedRewardsMember(1);
+
+      expect(unclaimed.toString()).to.equal('0');
+    });
+
+    it('should return 0 if PoolMember has previously claimed reward for the epoch', async () => {
+      await kyberPoolMaster.setClaimedPoolReward(1);
+      const calimedRewardMaster = await kyberPoolMaster.claimedPoolReward(1);
+      expect(calimedRewardMaster).to.equal(true);
+
+      await kyberPoolMaster.setClaimedDelegateReward(1, mike);
+      const calimedRewardMember = await kyberPoolMaster.claimedDelegateReward(
+        1,
+        mike
+      );
+      expect(calimedRewardMember).to.equal(true);
+
+      const unclaimed = await kyberPoolMaster.getUnclaimedRewardsMember(1, {
+        from: mike,
+      });
+      expect(unclaimed.toString()).to.equal('0');
+    });
+
+    it('should return 0 if PoolMember has not stake for the epoch', async () => {
+      await kyberPoolMaster.setClaimedPoolReward(1);
+      const calimedRewardMaster = await kyberPoolMaster.claimedPoolReward(1);
+      expect(calimedRewardMaster).to.equal(true);
+
+      const calimedRewardMember = await kyberPoolMaster.claimedDelegateReward(
+        1,
+        mike
+      );
+      expect(calimedRewardMember).to.equal(false);
+
+      await kyberStaking.setStakerData(1, mike, 0, 0, kyberPoolMaster.address);
+      const stakerDataForPastEpoch = await kyberStaking.getStakerDataForPastEpoch(
+        mike,
+        1
+      );
+      expect(stakerDataForPastEpoch[0].toString()).to.equal('0');
+
+      const unclaimed = await kyberPoolMaster.getUnclaimedRewardsMember(1, {
+        from: mike,
+      });
+      expect(unclaimed.toString()).to.equal('0');
+    });
+
+    it('should return 0 if PoolMember has not delegated it stake to this contract for the epoch', async () => {
+      await kyberPoolMaster.setClaimedPoolReward(1);
+      const calimedRewardMaster = await kyberPoolMaster.claimedPoolReward(1);
+      expect(calimedRewardMaster).to.equal(true);
+
+      const calimedRewardMember = await kyberPoolMaster.claimedDelegateReward(
+        1,
+        mike
+      );
+      expect(calimedRewardMember).to.equal(false);
+
+      await kyberStaking.setStakerData(1, mike, 1, 0, notOwner);
+      const stakerDataForPastEpoch = await kyberStaking.getStakerDataForPastEpoch(
+        mike,
+        1
+      );
+      expect(stakerDataForPastEpoch[0].toString()).to.equal('1');
+      expect(stakerDataForPastEpoch[2]).not.to.equal(kyberPoolMaster.address);
+
+      const unclaimed = await kyberPoolMaster.getUnclaimedRewardsMember(1, {
+        from: mike,
+      });
+      expect(unclaimed.toString()).to.equal('0');
+    });
+
+    it('should return unclaimed poolMember reward amount', async () => {
+      await kyberPoolMaster.setClaimedPoolReward(1);
+      const calimedRewardMaster = await kyberPoolMaster.claimedPoolReward(1);
+      expect(calimedRewardMaster).to.equal(true);
+
+      const calimedRewardMember = await kyberPoolMaster.claimedDelegateReward(
+        1,
+        mike
+      );
+      expect(calimedRewardMember).to.equal(false);
+
+      await kyberStaking.setStakerData(1, mike, 1, 0, kyberPoolMaster.address);
+      const stakerDataForPastEpoch = await kyberStaking.getStakerDataForPastEpoch(
+        mike,
+        1
+      );
+      expect(stakerDataForPastEpoch[0].toString()).to.equal('1');
+      expect(stakerDataForPastEpoch[2]).to.equal(kyberPoolMaster.address);
+
+      await kyberPoolMaster.setMemberRewards(1, 10, 5);
+      const memberRewards = await kyberPoolMaster.memberRewards(1);
+      console.log(
+        'memberRewards',
+        memberRewards.totalRewards.toString(),
+        memberRewards.totalStaked.toString()
+      );
+
+      const unclaimed = await kyberPoolMaster.getUnclaimedRewardsMember(1, {
+        from: mike,
+      });
+      expect(unclaimed.toString()).to.equal('2');
+    });
   });
 });
