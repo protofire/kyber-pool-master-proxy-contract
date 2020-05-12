@@ -15,9 +15,6 @@ const KyberStakingWithgetStakerDataForPastEpoch = artifacts.require(
   'KyberStakingWithgetStakerDataForPastEpoch'
 );
 
-const PoolMasterNoFallbackMock = artifacts.require('PoolMasterNoFallbackMock');
-const Kamikaze = artifacts.require('Kamikaze');
-
 const {expect} = require('chai');
 const {
   expectEvent,
@@ -241,7 +238,7 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       '900',
       // '2500',
       // '5000',
-      '9000'
+      '9000',
     ]; //0.01% 0.1% 1% 5% 9% 25% 50% 90%
     const rewardPerEpochs = [
       // '1000',
