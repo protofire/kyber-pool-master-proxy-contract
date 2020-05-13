@@ -6,13 +6,13 @@ const DAOContract = artifacts.require('MockKyberDaoMoreGetters.sol');
 const StakingContract = artifacts.require('MockStakingContract.sol');
 const MockFeeHandler = artifacts.require('MockFeeHandlerNoContructor.sol');
 
-const {expect} = require('chai');
-const {time, expectRevert, expectEvent} = require('@openzeppelin/test-helpers');
-const {precisionUnits, zeroAddress} = require('./helper.js');
-const Helper = require('./helper.js');
-const BN = web3.utils.BN;
-
-let daoSetter;
+const {
+  time,
+  expectRevert,
+  expectEvent,
+  BN,
+} = require('@openzeppelin/test-helpers');
+const {precisionUnits} = require('./helper.js');
 
 let currentChainTime;
 let poolMasterOwner;
@@ -24,15 +24,13 @@ let currentTimestamp;
 let currentBlock;
 let daoStartTime;
 
-let epochPeriod = 20;
+let epochPeriod = 50;
 let startBlock;
 let blockTime;
 let kncToken;
 let stakingContract;
 let feeHandler;
 let daoContract;
-let victor;
-let loi;
 let mike;
 let minCampPeriod = 10; // 160s - equivalent to 10 blocks
 let defaultNetworkFee = 25;
@@ -45,10 +43,47 @@ let minPercentageInPrecision = new BN(precisionUnits).div(new BN(5)); // 20%
 let cInPrecision = new BN(precisionUnits); // 100%
 let tInPrecision = new BN(precisionUnits); // 1
 
-const NO_ZERO_ADDRESS = '0x0000000000000000000000000000000000000001';
-const MAX_DELEGATION_FEE = 10000;
-
 contract('KyberPoolMaster vote', async (accounts) => {
+  const blockToTimestamp = function (block) {
+    return currentChainTime + (block - currentBlock) * blockTime;
+  };
+
+  const blocksToSeconds = function (blocks) {
+    return blocks * blockTime;
+  };
+
+  const updateCurrentBlockAndTimestamp = async () => {
+    currentBlock = Number((await time.latestBlock()).toString());
+    currentTimestamp = Number((await time.latest()).toString());
+    currentChainTime = currentTimestamp;
+  };
+
+  const submitNewCampaignAndDelayToStart = async (
+    daoContract,
+    campaignType,
+    startBlock,
+    endBlock,
+    minPercentageInPrecision,
+    cInPrecision,
+    tInPrecision,
+    options,
+    link,
+    opt
+  ) => {
+    await daoContract.submitNewCampaign(
+      campaignType,
+      blockToTimestamp(startBlock),
+      blockToTimestamp(endBlock),
+      minPercentageInPrecision,
+      cInPrecision,
+      tInPrecision,
+      options,
+      link,
+      opt
+    );
+    await time.increaseTo(blockToTimestamp(startBlock));
+  };
+
   before('one time init', async () => {
     campCreator = accounts[1];
     kncToken = await TestToken.new('Kyber Network Crystal', 'KNC', 18);
@@ -61,8 +96,7 @@ contract('KyberPoolMaster vote', async (accounts) => {
     await kncToken.transfer(notOwner, mulPrecision(1000000));
     await kncToken.transfer(mike, mulPrecision(1000000));
 
-    currentBlock = await Helper.getCurrentBlock();
-    currentChainTime = await Helper.getCurrentBlockTime();
+    await updateCurrentBlockAndTimestamp();
     blockTime = 16; // each block is mined after 16s
 
     epochPeriod = 50;
@@ -125,56 +159,6 @@ contract('KyberPoolMaster vote', async (accounts) => {
       {from: campCreator}
     );
   });
-
-  const blockToTimestamp = function (block) {
-    return currentChainTime + (block - currentBlock) * blockTime;
-  };
-
-  const blocksToSeconds = function (blocks) {
-    return blocks * blockTime;
-  };
-
-  // future epoches
-  const increaseToEpoch = async (epoch) => {
-    const epochStartTime = daoStartTime + (epoch - 1) * epochPeriod * blockTime;
-    return time.increaseTo(epochStartTime);
-  };
-
-  const increaseOneEpoch = async (epoch) => {
-    const currentEpoch = await stakingContract.getCurrentEpochNumber();
-    return increaseToEpoch(Number(currentEpoch.toString()) + 1);
-  };
-
-  const updateCurrentBlockAndTimestamp = async () => {
-    currentBlock = await Helper.getCurrentBlock();
-    currentTimestamp = await Helper.getCurrentBlockTime();
-  };
-
-  const submitNewCampaignAndDelayToStart = async (
-    daoContract,
-    campaignType,
-    startBlock,
-    endBlock,
-    minPercentageInPrecision,
-    cInPrecision,
-    tInPrecision,
-    options,
-    link,
-    opt
-  ) => {
-    await daoContract.submitNewCampaign(
-      campaignType,
-      blockToTimestamp(startBlock),
-      blockToTimestamp(endBlock),
-      minPercentageInPrecision,
-      cInPrecision,
-      tInPrecision,
-      options,
-      link,
-      opt
-    );
-    await Helper.mineNewBlockAt(blockToTimestamp(startBlock));
-  };
 
   describe('#Vote Tests', () => {
     it('should be able to vote', async function () {

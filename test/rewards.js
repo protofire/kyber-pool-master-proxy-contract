@@ -21,21 +21,17 @@ const {
   expectRevert,
   balance,
   ether,
+  BN,
 } = require('@openzeppelin/test-helpers');
 
 const Reverter = require('./utils/reverter');
 
-const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
-const NO_ZERO_ADDRESS = '0x0000000000000000000000000000000000000001';
-const MAX_DELEGATION_FEE = 10000;
-
-const BN = web3.utils.BN;
+const {NO_ZERO_ADDRESS} = require('./helper.js');
 
 let kyberPoolMaster;
 let kyberDAO;
 let kyberFeeHandler;
 let daoSetter;
-let kncToken;
 let poolMasterOwner;
 let bank;
 let notOwner;

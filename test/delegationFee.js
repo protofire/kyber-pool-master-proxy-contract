@@ -4,14 +4,11 @@ const KyberDAO = artifacts.require('KyberDAOHandleCurrentEpoch');
 const {expect, assert} = require('chai');
 const {expectEvent, expectRevert} = require('@openzeppelin/test-helpers');
 
-const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const NO_ZERO_ADDRESS = '0x0000000000000000000000000000000000000001';
-const MAX_DELEGATION_FEE = 10000;
 
 let kyberPoolMaster;
 let kyberDAO;
 let daoSetter;
-let kncToken;
 let poolMasterOwner;
 let notOwner;
 let mike;
