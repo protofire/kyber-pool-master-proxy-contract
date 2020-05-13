@@ -44,27 +44,27 @@ jobs:
         npm ci
         npm run test
 
-  Coverage:
+  # Coverage:
 
-    runs-on: ubuntu-latest
+  #   runs-on: ubuntu-latest
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
-    steps:
-    # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-    - uses: actions/checkout@v2
-    - uses: actions/setup-node@v1
-      with:
-        node-version: '12.16'
+  #   # Steps represent a sequence of tasks that will be executed as part of the job
+  #   steps:
+  #   # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+  #   - uses: actions/checkout@v2
+  #   - uses: actions/setup-node@v1
+  #     with:
+  #       node-version: '12.16'
 
-    - name: Coverage
-      run: |
-        npm ci
-        npm run coreverage
+  #   - name: Coverage
+  #     run: |
+  #       npm ci
+  #       npm run coreverage
 
-    - name: Coveralls
-      uses: coverallsapp/github-action@master
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
+  #   - name: Coveralls
+  #     uses: coverallsapp/github-action@master
+  #     with:
+  #       github-token: ${{ secrets.GITHUB_TOKEN }}
 
   Stress:
 
