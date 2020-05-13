@@ -32,7 +32,11 @@ contract KyberPoolMaster is Ownable {
     mapping(uint256 => bool) public claimedPoolReward;
 
     // Amount of rewards owed to poolMembers for an epoch
-    mapping(uint256 => uint256) public memberRewards;
+    struct Reward {
+        uint256 totalRewards;
+        uint256 totalStaked;
+    }
+    mapping(uint256 => Reward) public memberRewards;
 
     // Fee charged by poolMasters to poolMembers for services
     // Denominated in 1e4 units
@@ -54,9 +58,9 @@ contract KyberPoolMaster is Ownable {
     event CommitNewFees(uint256 deadline, uint256 feeRate);
     event NewFees(uint256 fromEpoch, uint256 feeRate);
     event MemberClaimReward(
+        uint256 indexed epoch,
         address indexed poolMember,
-        uint256 reward,
-        uint256 indexed epoch
+        uint256 reward
     );
     event MasterClaimReward(
         uint256 indexed epoch,
@@ -332,7 +336,7 @@ contract KyberPoolMaster is Ownable {
         uint256 poolMasterShare = totalRewards.sub(poolMembersShare); // fee + poolMaster stake share
 
         claimedPoolReward[epoch] = true;
-        memberRewards[epoch] = poolMembersShare;
+        memberRewards[epoch] = Reward(poolMembersShare, delegatedStake);
 
         // distribute poolMasterRewards to poolMaster
         address payable poolMaster = payable(owner());
@@ -353,6 +357,87 @@ contract KyberPoolMaster is Ownable {
             totalFee,
             poolMasterShare.sub(totalFee)
         );
+    }
+
+    /**
+     * @dev  Queries the amount of unclaimed rewards for the pool member
+     *       return 0 if PoolMaster has not called claimRewardMaster
+     *       return 0 if PoolMember has previously claimed reward for the epoch
+     *       return 0 if PoolMember has not stake for the epoch
+     *       return 0 if PoolMember has not delegated it stake to this contract for the epoch
+     * @param epoch for which epoch the memmber is querying unclaimed reward
+     */
+    function getUnclaimedRewardsMember(uint256 epoch)
+        public
+        view
+        returns (uint256)
+    {
+        if (!claimedPoolReward[epoch]) {
+            return 0;
+        }
+
+        address poolMember = msg.sender;
+
+        if (claimedDelegateReward[epoch][poolMember]) {
+            return 0;
+        }
+
+        (
+            uint256 stake,
+            uint256 delegatedStake,
+            address delegatedAddr
+        ) = kyberStaking.getStakerDataForPastEpoch(poolMember, epoch);
+
+        if (stake == 0) {
+            return 0;
+        }
+
+        if (delegatedAddr != address(this)) {
+            return 0;
+        }
+
+        Reward memory rewardForEpoch = memberRewards[epoch];
+
+        return
+            calculateRewardsShare(
+                stake,
+                rewardForEpoch.totalStaked,
+                rewardForEpoch.totalRewards
+            );
+    }
+
+    /**
+     * @dev Claims rewards for poolMember that has not claimed for an epoch previously
+     *      and the poolMaster has claimed rewards for the pool.
+     *      This contract will keep locked remainings from rounding at a wei level.
+     * @param epoch for which rewards are being claimed
+     */
+    function claimRewardMember(uint256 epoch) public {
+        require(
+            claimedPoolReward[epoch],
+            "cRMember: poolMaster has not claimed yet"
+        );
+
+        address poolMember = msg.sender;
+
+        require(
+            !claimedDelegateReward[epoch][poolMember],
+            "cRMember: rewards already claimed"
+        );
+
+        uint256 poolMemberShare = getUnclaimedRewardsMember(epoch);
+
+        require(poolMemberShare > 0, "cRMember: no rewards to claim");
+
+        claimedDelegateReward[epoch][poolMember] = true;
+
+        // distribute poolMember rewards share
+        require(
+            payable(poolMember).send(poolMemberShare),
+            "cRMember: poolMember share transfer failed"
+        );
+
+        emit MemberClaimReward(epoch, poolMember, poolMemberShare);
     }
 
     // Utils

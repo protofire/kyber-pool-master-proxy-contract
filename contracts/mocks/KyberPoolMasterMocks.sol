@@ -3,7 +3,7 @@ pragma solidity 0.6.6;
 import "../KyberPoolMaster.sol";
 
 
-contract KyberPoolMasterWithClaimedPoolRewardSetter is KyberPoolMaster {
+contract KyberPoolMasterWithSetters is KyberPoolMaster {
     constructor(
         address _kncToken,
         address _kyberDAO,
@@ -13,6 +13,7 @@ contract KyberPoolMasterWithClaimedPoolRewardSetter is KyberPoolMaster {
         uint256 _delegationFee
     )
         public
+        payable
         KyberPoolMaster(
             _kncToken,
             _kyberDAO,
@@ -25,5 +26,13 @@ contract KyberPoolMasterWithClaimedPoolRewardSetter is KyberPoolMaster {
 
     function setClaimedPoolReward(uint256 epoch) public {
         claimedPoolReward[epoch] = true;
+    }
+
+    function setClaimedDelegateReward(uint256 epoch, address member) public {
+        claimedDelegateReward[epoch][member] = true;
+    }
+
+    function setMemberRewards(uint256 epoch, uint256 totalRewards, uint256 totalStaked) public {
+        memberRewards[epoch] = Reward(totalRewards, totalStaked);
     }
 }
