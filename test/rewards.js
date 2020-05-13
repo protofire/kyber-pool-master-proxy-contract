@@ -592,6 +592,8 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       poolMasterOwner = accounts[2];
       notOwner = accounts[3];
       mike = accounts[4];
+      paula = accounts[5];
+      cris = accounts[6];
 
       kyberStaking = await KyberStakingWithgetStakerDataForPastEpoch.new();
       kyberFeeHandler = await KyberFeeHandlerWithClaimStakerReward.new();
@@ -723,6 +725,108 @@ contract('KyberPoolMaster claiming', async (accounts) => {
         .sub(gasUsed.mul(gasPrice))
         .add(new BN('2'));
       expect(mikeBalanceAfter.toString()).to.equal(expectedBalance.toString());
+    });
+
+    it('should distribute pool members share and keep remainings from rounding', async () => {
+      // totalStaked = 100
+      // total reward to share among members = 9999
+      // mike staked 35, its share is 35 * 9999 / 100 = 3499
+      // cris staked 5, its share is 5 * 9999 / 100 = 499
+      // paula staked 60, its share is 60 * 9999 / 100 = 5999
+      // total distributed = 3499 + 499 + 5999 = 9997
+      // remainings = 3
+      // values are in wei
+
+      await kyberPoolMaster.setClaimedPoolReward(1);
+      await kyberStaking.setStakerData(1, mike, 35, 0, kyberPoolMaster.address);
+      await kyberStaking.setStakerData(1, cris, 5, 0, kyberPoolMaster.address);
+      await kyberStaking.setStakerData(
+        1,
+        paula,
+        60,
+        0,
+        kyberPoolMaster.address
+      );
+
+      await kyberPoolMaster.setMemberRewards(1, 9999, 100);
+
+      const mikeBalance = await balance.current(mike);
+      const crisBalance = await balance.current(cris);
+      const paulaBalance = await balance.current(paula);
+      const poolBalance = await balance.current(kyberPoolMaster.address);
+
+      const mikeTxInfo = await kyberPoolMaster.claimRewardMember(1, {
+        from: mike,
+      });
+      expectEvent(mikeTxInfo, 'MemberClaimReward', {
+        epoch: '1',
+        poolMember: mike,
+        reward: '3499',
+      });
+
+      const crisTxInfo = await kyberPoolMaster.claimRewardMember(1, {
+        from: cris,
+      });
+      expectEvent(crisTxInfo, 'MemberClaimReward', {
+        epoch: '1',
+        poolMember: cris,
+        reward: '499',
+      });
+
+      const paulaTxInfo = await kyberPoolMaster.claimRewardMember(1, {
+        from: paula,
+      });
+      expectEvent(paulaTxInfo, 'MemberClaimReward', {
+        epoch: '1',
+        poolMember: paula,
+        reward: '5999',
+      });
+
+      const mikeBalanceAfter = await balance.current(mike);
+      const crisBalanceAfter = await balance.current(cris);
+      const paulaBalanceAfter = await balance.current(paula);
+      const poolBalanceAfter = await balance.current(kyberPoolMaster.address);
+
+      const txMike = await web3.eth.getTransaction(mikeTxInfo.tx);
+      const gasUsedMike = new BN(mikeTxInfo.receipt.gasUsed);
+      const gasPriceMike = new BN(txMike.gasPrice);
+
+      const txCris = await web3.eth.getTransaction(crisTxInfo.tx);
+      const gasUsedCris = new BN(crisTxInfo.receipt.gasUsed);
+      const gasPriceCris = new BN(txCris.gasPrice);
+
+      const txPaula = await web3.eth.getTransaction(paulaTxInfo.tx);
+      const gasUsedPaula = new BN(paulaTxInfo.receipt.gasUsed);
+      const gasPricePaula = new BN(txPaula.gasPrice);
+
+      const expectedBalanceMike = mikeBalance
+        .sub(gasUsedMike.mul(gasPriceMike))
+        .add(new BN('3499'));
+      expect(mikeBalanceAfter.toString()).to.equal(
+        expectedBalanceMike.toString()
+      );
+
+      const expectedBalanceCris = crisBalance
+        .sub(gasUsedCris.mul(gasPriceCris))
+        .add(new BN('499'));
+      expect(crisBalanceAfter.toString()).to.equal(
+        expectedBalanceCris.toString()
+      );
+
+      const expectedBalancePaula = paulaBalance
+        .sub(gasUsedPaula.mul(gasPricePaula))
+        .add(new BN('5999'));
+      expect(paulaBalanceAfter.toString()).to.equal(
+        expectedBalancePaula.toString()
+      );
+
+      const expecteBalancePool = poolBalance
+        .sub(new BN('3499'))
+        .sub(new BN('499'))
+        .sub(new BN('5999'));
+      expect(poolBalanceAfter.toString()).to.equal(
+        expecteBalancePool.toString()
+      );
     });
   });
 });
