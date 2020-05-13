@@ -1,6 +1,4 @@
-const KyberPoolMaster = artifacts.require(
-  'KyberPoolMasterWithSetters'
-);
+const KyberPoolMaster = artifacts.require('KyberPoolMasterWithSetters');
 
 const KyberDAOClaimReward = artifacts.require('KyberDAOClaimReward');
 
