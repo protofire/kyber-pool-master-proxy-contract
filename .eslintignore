@@ -1,0 +1,7 @@
+/build/**
+/coverage/**
+/docs/**
+/jsdoc/**
+/tmp/**
+/flats/**
+coverage.json
