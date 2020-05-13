@@ -1,13 +1,9 @@
 const KyberPoolMaster = artifacts.require(
-  'KyberPoolMasterWithClaimedPoolRewardSetter'
+  'KyberPoolMasterWithSetters'
 );
-const KyberDAOWithRewardPercentageSetter = artifacts.require(
-  'KyberDAOWithRewardPercentageSetter'
-);
+
 const KyberDAOClaimReward = artifacts.require('KyberDAOClaimReward');
-const KyberFeeHandlerWithRewardPerEposhSetter = artifacts.require(
-  'KyberFeeHandlerWithRewardPerEposhSetter'
-);
+
 const KyberFeeHandlerWithClaimStakerReward = artifacts.require(
   'KyberFeeHandlerWithClaimStakerReward'
 );
@@ -150,7 +146,7 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       );
 
       const epochPoolMembersShare = await kyberPoolMaster.memberRewards(epoch);
-      expect(epochPoolMembersShare.toString()).to.equal(
+      expect(epochPoolMembersShare.totalRewards.toString()).to.equal(
         poolMemberShare.toString()
       );
 
