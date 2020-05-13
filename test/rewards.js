@@ -619,7 +619,7 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       );
     });
 
-    it('should revert if poolMember has already clamined its share for the epoch', async () => {
+    it('should revert if poolMember has already claimed its share for the epoch', async () => {
       await kyberPoolMaster.setClaimedPoolReward(1);
       const calimedRewardMaster = await kyberPoolMaster.claimedPoolReward(1);
       expect(calimedRewardMaster).to.equal(true);
@@ -637,7 +637,7 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       );
     });
 
-    it('should revert if unclaimer reward member is 0 due to the poolMember has not stake for the epoch', async () => {
+    it('should revert if unclaimed reward member is 0 due to the poolMember has not stake for the epoch', async () => {
       await kyberPoolMaster.setClaimedPoolReward(1);
       const calimedRewardMaster = await kyberPoolMaster.claimedPoolReward(1);
       expect(calimedRewardMaster).to.equal(true);
@@ -661,7 +661,7 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       );
     });
 
-    it('should revert if unclaimer reward member is 0 due to the poolMember has not delegated it stake to this contract for the epoch', async () => {
+    it('should revert if unclaimed reward member is 0 due to the poolMember has not delegated it stake to this contract for the epoch', async () => {
       await kyberPoolMaster.setClaimedPoolReward(1);
       const calimedRewardMaster = await kyberPoolMaster.claimedPoolReward(1);
       expect(calimedRewardMaster).to.equal(true);

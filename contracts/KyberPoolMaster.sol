@@ -407,7 +407,9 @@ contract KyberPoolMaster is Ownable {
     }
 
     /**
-     * @dev Claims reward for poolMember has not claimed for an epoch previously and the poolMaster has claimed rewards for the pool
+     * @dev Claims rewards for poolMember that has not claimed for an epoch previously
+     *      and the poolMaster has claimed rewards for the pool.
+     *      This contract will keep locked remainings from rounding at a wei level.
      * @param epoch for which rewards are being claimed
      */
     function claimRewardMember(uint256 epoch) public {
