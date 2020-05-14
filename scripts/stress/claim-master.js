@@ -12,30 +12,20 @@ const KyberStakingWithgetStakerDataForPastEpoch = artifacts.require(
 const {expect} = require('chai');
 const {
   expectEvent,
-  expectRevert,
   balance,
   ether,
+  BN
 } = require('@openzeppelin/test-helpers');
 
 const Reverter = require('../../test/utils/reverter');
-
-const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
-const NO_ZERO_ADDRESS = '0x0000000000000000000000000000000000000001';
-const MAX_DELEGATION_FEE = 10000;
-
-const BN = web3.utils.BN;
+const {NO_ZERO_ADDRESS} = require('../../test/helper.js');
 
 let kyberPoolMaster;
 let kyberDAO;
 let kyberFeeHandler;
-let daoSetter;
-let kncToken;
 let poolMasterOwner;
-let bank;
-let notOwner;
 let mike;
 let reverter;
-let poolMasterNoFallbackMock;
 
 contract('KyberPoolMaster claiming', async (accounts) => {
   before('one time init', async () => {
@@ -102,19 +92,16 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       stakerRewardPercentage,
       poolMasterStakesDelegatedStakes
     ) => {
-      // 82     '1' '1000000'            '10000000000000000' [ 0, 1 ]
-
       const poolMaster = new BN(poolMasterStakesDelegatedStakes[0]);
       const delegatedStake = new BN(poolMasterStakesDelegatedStakes[1]);
       const totalStake = poolMaster.add(delegatedStake);
 
-      const rewardsPerEpoch = ether('3');
       const unclaimReward = new BN(rewardPerEpoch)
         .mul(new BN(stakerRewardPercentage))
-        .div(ether('1')); // 1000000 * 10000000000000000 / 10^18 = 10000
+        .div(ether('1'));
       const feeAmount = new BN(unclaimReward)
         .mul(new BN(fee))
-        .div(new BN(10000)); // 10000 * 1 /
+        .div(new BN(10000));
       const poolMemberShare = delegatedStake
         .mul(unclaimReward.sub(feeAmount))
         .div(totalStake);
@@ -155,11 +142,8 @@ contract('KyberPoolMaster claiming', async (accounts) => {
     before('one time', async () => {
       await reverter.revert();
 
-      bank = accounts[0];
-      daoSetter = accounts[1];
-      poolMasterOwner = accounts[2];
-      notOwner = accounts[3];
-      mike = accounts[4];
+      poolMasterOwner = accounts[1];
+      mike = accounts[2];
 
       kyberStaking = await KyberStakingWithgetStakerDataForPastEpoch.new();
       kyberFeeHandler = await KyberFeeHandlerWithClaimStakerReward.new();
@@ -174,54 +158,9 @@ contract('KyberPoolMaster claiming', async (accounts) => {
         {from: poolMasterOwner}
       );
 
-      await kyberFeeHandler.send('90000000000000000000000', {
-        from: accounts[5],
-      });
-      await kyberFeeHandler.send('90000000000000000000000', {
-        from: accounts[6],
-      });
-      await kyberFeeHandler.send('90000000000000000000000', {
-        from: accounts[7],
-      });
-      await kyberFeeHandler.send('90000000000000000000000', {
-        from: accounts[8],
-      });
-      await kyberFeeHandler.send('90000000000000000000000', {
-        from: accounts[8],
-      });
-      await kyberFeeHandler.send('90000000000000000000000', {
-        from: accounts[9],
-      });
-      await kyberFeeHandler.send('90000000000000000000000', {
-        from: accounts[10],
-      });
-      await kyberFeeHandler.send('90000000000000000000000', {
-        from: accounts[11],
-      });
-      await kyberFeeHandler.send('90000000000000000000000', {
-        from: accounts[12],
-      });
-      await kyberFeeHandler.send('90000000000000000000000', {
-        from: accounts[13],
-      });
-      await kyberFeeHandler.send('90000000000000000000000', {
-        from: accounts[14],
-      });
-      await kyberFeeHandler.send('90000000000000000000000', {
-        from: accounts[15],
-      });
-      await kyberFeeHandler.send('90000000000000000000000', {
-        from: accounts[16],
-      });
-      await kyberFeeHandler.send('90000000000000000000000', {
-        from: accounts[17],
-      });
-      await kyberFeeHandler.send('90000000000000000000000', {
-        from: accounts[18],
-      });
-      await kyberFeeHandler.send('90000000000000000000000', {
-        from: accounts[19],
-      });
+      await Promise.all(Array.from({ length: 17 }, (v, i) => kyberFeeHandler.send('90000000000000000000000', {
+        from: accounts[i+3],
+      })))
     });
 
     const fees = [

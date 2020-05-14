@@ -6,10 +6,13 @@ const TestToken = artifacts.require('Token.sol');
 const StakingContract = artifacts.require('MockStakingContract.sol');
 
 const {expect} = require('chai');
-const {time, expectRevert, expectEvent} = require('@openzeppelin/test-helpers');
-const {precisionUnits, zeroAddress} = require('./helper.js');
-const Helper = require('./helper.js');
-const BN = web3.utils.BN;
+const {
+  time,
+  expectRevert,
+  expectEvent,
+  BN,
+} = require('@openzeppelin/test-helpers');
+const {precisionUnits} = require('./helper.js');
 
 let daoSetter;
 
@@ -41,8 +44,8 @@ contract(
       notOwner = accounts[3];
       mike = accounts[4];
 
-      currentBlock = await Helper.getCurrentBlock();
-      currentChainTime = await Helper.getCurrentBlockTime();
+      currentBlock = Number((await time.latestBlock()).toString());
+      currentChainTime = Number((await time.latest()).toString());
       blockTime = 16; // each block is mined after 16s
 
       epochPeriod = 10;

@@ -3,13 +3,13 @@ const KyberDAO = artifacts.require('KyberDAOHandleCurrentEpoch');
 const TestToken = artifacts.require('Token.sol');
 
 const {expect} = require('chai');
-const {expectRevert, expectEvent} = require('@openzeppelin/test-helpers');
-const {precisionUnits} = require('./helper.js');
-
-const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
-const NO_ZERO_ADDRESS = '0x0000000000000000000000000000000000000001';
-const MAX_DELEGATION_FEE = 10000;
-const BN = web3.utils.BN;
+const {expectRevert, expectEvent, BN} = require('@openzeppelin/test-helpers');
+const {
+  precisionUnits,
+  ZERO_ADDRESS,
+  NO_ZERO_ADDRESS,
+  MAX_DELEGATION_FEE,
+} = require('./helper.js');
 
 let kyberPoolMaster;
 let erc20;
