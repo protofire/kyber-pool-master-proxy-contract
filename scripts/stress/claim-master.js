@@ -10,12 +10,7 @@ const KyberStakingWithgetStakerDataForPastEpoch = artifacts.require(
 );
 
 const {expect} = require('chai');
-const {
-  expectEvent,
-  balance,
-  ether,
-  BN
-} = require('@openzeppelin/test-helpers');
+const {expectEvent, balance, ether, BN} = require('@openzeppelin/test-helpers');
 
 const Reverter = require('../../test/utils/reverter');
 const {NO_ZERO_ADDRESS} = require('../../test/helper.js');
@@ -158,9 +153,13 @@ contract('KyberPoolMaster claiming', async (accounts) => {
         {from: poolMasterOwner}
       );
 
-      await Promise.all(Array.from({ length: 17 }, (v, i) => kyberFeeHandler.send('90000000000000000000000', {
-        from: accounts[i+3],
-      })))
+      await Promise.all(
+        Array.from({length: 17}, (v, i) =>
+          kyberFeeHandler.send('90000000000000000000000', {
+            from: accounts[i + 3],
+          })
+        )
+      );
     });
 
     const fees = [

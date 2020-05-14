@@ -87,12 +87,10 @@
   },
   "lint-staged": {
     "**/*.sol": [
-      "prettier --write",
-      "git add"
+      "prettier --write"
     ],
-    "test/**": [
-      "eslint --fix",
-      "git add"
+    "*.js": [
+      "eslint --fix"
     ]
   }
 }
