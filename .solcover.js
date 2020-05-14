@@ -4,5 +4,5 @@ module.exports = {
       "total_accounts": 20
   },
   skipFiles: ['mocks/', 'interfaces/','test/', 'Migrations.sol'],
-  istanbulReporter: ['html','json'],
+  istanbulReporter: ['html', 'lcov', 'json'],
 }
