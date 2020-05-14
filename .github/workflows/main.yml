@@ -59,7 +59,7 @@ jobs:
     - name: Coverage
       run: |
         npm ci
-        npm run coreverage
+        npm run coverage
 
     - name: Coveralls
       uses: coverallsapp/github-action@master
