@@ -1,13 +1,7 @@
-const KyberPoolMaster = artifacts.require(
-  'KyberPoolMasterWithClaimedPoolRewardSetter'
-);
-const KyberDAOWithRewardPercentageSetter = artifacts.require(
-  'KyberDAOWithRewardPercentageSetter'
-);
+const KyberPoolMaster = artifacts.require('KyberPoolMasterWithSetters');
+
 const KyberDAOClaimReward = artifacts.require('KyberDAOClaimReward');
-const KyberFeeHandlerWithRewardPerEposhSetter = artifacts.require(
-  'KyberFeeHandlerWithRewardPerEposhSetter'
-);
+
 const KyberFeeHandlerWithClaimStakerReward = artifacts.require(
   'KyberFeeHandlerWithClaimStakerReward'
 );
@@ -16,12 +10,7 @@ const KyberStakingWithgetStakerDataForPastEpoch = artifacts.require(
 );
 
 const {expect} = require('chai');
-const {
-  expectEvent,
-  balance,
-  ether,
-  BN
-} = require('@openzeppelin/test-helpers');
+const {expectEvent, balance, ether, BN} = require('@openzeppelin/test-helpers');
 
 const Reverter = require('../../test/utils/reverter');
 const {NO_ZERO_ADDRESS} = require('../../test/helper.js');
@@ -137,7 +126,7 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       );
 
       const epochPoolMembersShare = await kyberPoolMaster.memberRewards(epoch);
-      expect(epochPoolMembersShare.toString()).to.equal(
+      expect(epochPoolMembersShare.totalRewards.toString()).to.equal(
         poolMemberShare.toString()
       );
 
@@ -164,9 +153,13 @@ contract('KyberPoolMaster claiming', async (accounts) => {
         {from: poolMasterOwner}
       );
 
-      await Promise.all(Array.from({ length: 17 }, (v, i) => kyberFeeHandler.send('90000000000000000000000', {
-        from: accounts[i+3],
-      })))
+      await Promise.all(
+        Array.from({length: 17}, (v, i) =>
+          kyberFeeHandler.send('90000000000000000000000', {
+            from: accounts[i + 3],
+          })
+        )
+      );
     });
 
     const fees = [

@@ -315,11 +315,8 @@ contract KyberPoolMaster is Ownable {
 
         uint256 totalRewards = address(this).balance.sub(initialBalance);
 
-        (
-            uint256 stake,
-            uint256 delegatedStake,
-            address delegatedAddr
-        ) = kyberStaking.getStakerDataForPastEpoch(address(this), epoch);
+        (uint256 stake, uint256 delegatedStake, ) = kyberStaking
+            .getStakerDataForPastEpoch(address(this), epoch);
 
         DFeeData storage epochDFee = delegationFees[getEpochDFeeDataId(epoch)];
 
@@ -382,11 +379,8 @@ contract KyberPoolMaster is Ownable {
             return 0;
         }
 
-        (
-            uint256 stake,
-            uint256 delegatedStake,
-            address delegatedAddr
-        ) = kyberStaking.getStakerDataForPastEpoch(poolMember, epoch);
+        (uint256 stake, , address delegatedAddr) = kyberStaking
+            .getStakerDataForPastEpoch(poolMember, epoch);
 
         if (stake == 0) {
             return 0;

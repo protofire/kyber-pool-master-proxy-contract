@@ -1,3 +1,6 @@
 contracts/lib
 contracts/mocks
 contracts/test
+/coverage/**
+/flats/**
+coverage.json

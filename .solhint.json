@@ -4,11 +4,7 @@
   "rules": {
     "prettier/prettier": "error",
     "mark-callable-contracts": "off",
-    "avoid-low-level-calls": "off",
-    "no-inline-assembly": "off",
-    "multiple-sends": "off",
-    "bracket-align": "off",
-    "no-complex-fallback": "off",
+    "check-send-result": "off",
     "compiler-version": ["error", "0.6.6"]
   }
 }
