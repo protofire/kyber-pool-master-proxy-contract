@@ -7,12 +7,11 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 
 import "./interfaces/IExtendedKyberDAO.sol";
 import "./interfaces/IExtendedKyberFeeHandler.sol";
-
 import "smart-contracts/contracts/sol6/Dao/IKyberStaking.sol";
 
 
 /**
- * @title Kayber PoolMaster contract
+ * @title Kyber PoolMaster contract
  * @author Protofire
  */
 contract KyberPoolMaster is Ownable {
@@ -77,7 +76,7 @@ contract KyberPoolMaster is Ownable {
      * @param _kyberDAO KyberDAO contract address
      * @param _kyberStaking KyberStaking contract address
      * @param _kyberFeeHandler KyberFeeHandler contract address
-     * @param _epochNotice Number of epochs after which a change on deledatioFee is will be applied
+     * @param _epochNotice Number of epochs after which a change on delegationFee is will be applied
      * @param _delegationFee Fee charged by poolMasters to poolMembers for services - Denominated in 1e4 units - 100 = 1%
      */
     constructor(
@@ -168,7 +167,7 @@ contract KyberPoolMaster is Ownable {
     }
 
     /**
-     * @dev  set a new delegation fee to be applyied in current epoch + epochNotice
+     * @dev  set a new delegation fee to be applied in current epoch + epochNotice
      * @param _fee new fee
      */
     function commitNewFee(uint256 _fee) external onlyOwner {
