@@ -259,21 +259,89 @@ Pool Members claims its unclaimed reward for epoch 5
 eth contract:send --NETWORK KyberPoolMaster@KYBER_POOL_MASTER_CONTRACT_ADDRESS 'claimRewardsMaster(5)' --pk=USER_WALLET_ADDRESS_PK
 ```
 
-
-
-
 ## Publicly accesible state variables
-#### epochNotice
-#### claimedDelegateReward
+### epochNotice
+Number of epochs after which a change on deledatioFee is will be applied
+
+#### Example
+Obtain epochNotice
+
+```bash
+eth contract:call --NETWORK KyberPoolMaster@KYBER_POOL_MASTER_CONTRACT_ADDRESS 'epochNotice()'
+```
+
+### claimedDelegateReward
+Mapping of if staker has claimed reward for Epoch
+
+#### Example
+Check if STAKER_ADDRESS as claimed reward for epoch 5
+
+```bash
+eth contract:call --NETWORK KyberPoolMaster@KYBER_POOL_MASTER_CONTRACT_ADDRESS 'claimedDelegateReward(STAKER_ADDRESS, 5)'
+```
+
 #### claimedPoolReward
+Mapping of if poolMaster has claimed reward for an epoch for the pool
+
+#### Example
+Check if pool has claimed rewards for epoch 4
+
+```bash
+eth contract:call --NETWORK KyberPoolMaster@KYBER_POOL_MASTER_CONTRACT_ADDRESS 'claimedPoolReward(4)'
+```
+
 #### memberRewards
-#### delegationFees
+Amount of rewards owed to poolMembers for an epoch
+
+#### Example
+Check poolMembers rewards for epoch 4
+
+```bash
+eth contract:call --NETWORK KyberPoolMaster@KYBER_POOL_MASTER_CONTRACT_ADDRESS 'memberRewards(4)'
+```
 
 ### Events
-##### CommitNewFees
-##### NewFees
-##### MemberClaimReward
-##### MasterClaimReward
+#### CommitNewFees
+Emitted during contract deployment and whenever `commitNewFee` is called.
+
+event **`CommitNewFees`**(uint256 deadline, uint256 feeRate);
+| Parameter | Type | Description |
+| ---------- |:-------:|:-------------------:|
+| `deadline` | uint256 | last epoch before the fee gets applied |
+| `feeRate` | uint256 |  fee rate |
+
+#### NewFees
+Emitted during contract deployment and whenever the pending fee is applied.
+
+event **`NewFees`**(uint256 fromEpoch, uint256 feeRate);
+| Parameter | Type | Description |
+| ---------- |:-------:|:-------------------:|
+| `fromEpoch` | uint256 | from which epoch the fee is applied |
+| `feeRate` | uint256 |  fee rate |
+
+
+#### MemberClaimReward
+Emitted whenever a pool member claims its reward
+
+event **`MemberClaimReward`**(uint256 indexed epoch, address indexed poolMember, uint256 reward)
+| Parameter | Type | Description |
+| ---------- |:-------:|:-------------------:|
+| `epoch` | uint256 | epoch being claimed |
+| `poolMember` | uint256 |  pool member address |
+| `reward` | uint256 | reward transferred |
+
+#### MasterClaimReward
+Emitted whenever `claimRewardsMaster` is called successfully
+
+event **`MasterClaimReward`**(uint256 indexed epoch, address indexed poolMaster, uint256 totalRewards, uint256 feeApplied, uint256 feeAmount, uint256 poolMasterShare)
+| Parameter | Type | Description |
+| ---------- |:-------:|:-------------------:|
+| `epoch` | uint256 | epoch being claimed |
+| `poolMaster` | uint256 |  pool master address |
+| `totalRewards` | uint256 | total rewards obteined by the pool |
+| `feeApplied` | uint256 | fee applied to the claim |
+| `feeAmount` | uint256 | fee amount charged |
+| `poolMasterShare` | uint256 | pool master share |
 
 
 ### Resources
@@ -282,7 +350,6 @@ eth contract:send --NETWORK KyberPoolMaster@KYBER_POOL_MASTER_CONTRACT_ADDRESS '
 - [Kyber Team as DAO Maintainer](https://github.com/KyberNetwork/developer-portal/blob/stakingSection/kyber-team-maintainer.md)
 - [Staking and Delegating APIs](https://github.com/KyberNetwork/developer-portal/blob/stakingSection/staking-api.md)
 - [KyberDAO FAQs](https://github.com/KyberNetwork/developer-portal/blob/stakingSection/faqs.md)
-
 
 ## Develop
 
