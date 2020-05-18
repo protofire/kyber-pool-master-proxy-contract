@@ -21,7 +21,7 @@ contract KyberPoolMaster is Ownable {
     uint256 internal constant MAX_DELEGATION_FEE = 10000;
     uint256 internal constant PRECISION = (10**18);
 
-    // Number of epochs after which a change on deledatioFee is will be applied
+    // Number of epochs after which a change on delegationFee is will be applied
     uint256 public epochNotice;
 
     // Mapping of if staker has claimed reward for Epoch
@@ -361,7 +361,7 @@ contract KyberPoolMaster is Ownable {
      *       return 0 if PoolMember has previously claimed reward for the epoch
      *       return 0 if PoolMember has not stake for the epoch
      *       return 0 if PoolMember has not delegated it stake to this contract for the epoch
-     * @param epoch for which epoch the memmber is querying unclaimed reward
+     * @param epoch for which epoch the member is querying unclaimed reward
      */
     function getUnclaimedRewardsMember(uint256 epoch)
         public
