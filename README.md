@@ -1,3 +1,7 @@
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Coverage Status](https://coveralls.io/repos/github/protofire/kyber-pool-master-proxy-contract/badge.svg)](https://coveralls.io/github/protofire/kyber-pool-master-proxy-contract)
+![CI](https://github.com/protofire/kyber-pool-master-proxy-contract/workflows/CI/badge.svg)
+
 # Kyber PoolMaster proxy contract
 Contract that allows pool masters to let pool members claim their designated rewards trustlessly and update fees with sufficient notice times while maintaining full trustlessness.
 
@@ -378,7 +382,5 @@ npm run flatten
 The flattened contracts can be found in the `flats` directory.
 
 ## License
-
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
