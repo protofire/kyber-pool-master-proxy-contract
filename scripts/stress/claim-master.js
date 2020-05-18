@@ -21,6 +21,7 @@ let kyberFeeHandler;
 let poolMasterOwner;
 let mike;
 let reverter;
+let kyberStaking;
 
 contract('KyberPoolMaster claiming', async (accounts) => {
   before('one time init', async () => {
@@ -69,7 +70,6 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       stakerRewardPercentage,
       poolMasterStakesDelegatedStakes
     ) => {
-      // console.log('prepareScenario', epoch, rewardsPerEpoch, stakerRewardPercentage, poolMasterStakesDelegatedStakes)
       await prepareEpochForClaim({
         epoch,
         staker: kyberPoolMaster.address,
