@@ -58,17 +58,15 @@ contract(
         daoSetter
       );
 
-      kyberDAO = await KyberDAO.new();
-
-      poolMaster = await KyberPoolMaster.new(
+      kyberDAO = await KyberDAO.new(
         kncToken.address,
-        kyberDAO.address,
         stakingContract.address,
-        NO_ZERO_ADDRESS,
-        2,
-        1,
-        {from: poolMasterOwner}
+        NO_ZERO_ADDRESS
       );
+
+      poolMaster = await KyberPoolMaster.new(kyberDAO.address, 2, 1, {
+        from: poolMasterOwner,
+      });
     });
 
     const blockToTimestamp = function (block) {

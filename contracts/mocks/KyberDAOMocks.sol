@@ -5,8 +5,19 @@ import "./KyberFeeHandlerMocks.sol";
 contract KyberDAOHandleCurrentEpoch {
     uint256 internal curEpoch;
 
-    constructor() public {
+    address public kncToken;
+    address public staking;
+    address public feeHandler;
+
+    constructor(
+        address _knc,
+        address _staking,
+        address _feeHandler
+    ) public {
         curEpoch = 0;
+        kncToken = _knc;
+        staking = _staking;
+        feeHandler = _feeHandler;
     }
 
     function getCurrentEpochNumber() public view returns (uint256) {
@@ -21,7 +32,11 @@ contract KyberDAOHandleCurrentEpoch {
 contract KyberDAOWithRewardPercentageSetter is KyberDAOHandleCurrentEpoch {
     mapping(address => mapping(uint256 => uint256)) public stakerRewardPercentage;
 
-    constructor() public KyberDAOHandleCurrentEpoch() {}
+    constructor(
+        address _knc,
+        address _staking,
+        address _feeHandler
+    ) public KyberDAOHandleCurrentEpoch(_knc, _staking, _feeHandler) {}
 
     function getStakerRewardPercentageInPrecision(address staker, uint256 epoch)
         public
@@ -41,17 +56,21 @@ contract KyberDAOWithRewardPercentageSetter is KyberDAOHandleCurrentEpoch {
 }
 
 contract KyberDAOClaimReward is KyberDAOWithRewardPercentageSetter {
-    KyberFeeHandlerWithClaimStakerReward public feeHandler;
+    KyberFeeHandlerWithClaimStakerReward public feeHandlerWithClaimStakerReward;
 
-    constructor(address payable _kyberFeeHandler) public KyberDAOWithRewardPercentageSetter() {
-        feeHandler = KyberFeeHandlerWithClaimStakerReward(_kyberFeeHandler);
+    constructor(
+        address _knc,
+        address _staking,
+        address payable _feeHandler
+    ) public KyberDAOWithRewardPercentageSetter(_knc, _staking, _feeHandler) {
+        feeHandlerWithClaimStakerReward = KyberFeeHandlerWithClaimStakerReward(_feeHandler);
     }
 
     function claimReward(address staker, uint256 epoch) external {
         uint256 perInPrecision = getStakerRewardPercentageInPrecision(staker, epoch);
 
         require(
-            feeHandler.claimStakerReward(staker, perInPrecision, epoch),
+            feeHandlerWithClaimStakerReward.claimStakerReward(staker, perInPrecision, epoch),
             "claimReward: feeHandle failed to claim"
         );
     }

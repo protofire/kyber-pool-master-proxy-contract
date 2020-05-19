@@ -10,4 +10,10 @@ interface IExtendedKyberDAO is IKyberDAO {
         external
         view
         returns (uint256);
+
+    function kncToken() external view returns (address);
+
+    function staking() external view returns (address);
+
+    function feeHandler() external view returns (address);
 }

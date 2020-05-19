@@ -72,28 +72,16 @@ contract KyberPoolMaster is Ownable {
 
     /**
      * @notice Address deploying this contract should be able to receive ETH, owner can be changed using transferOwnership method
-     * @param _kncToken KNC Token address
      * @param _kyberDAO KyberDAO contract address
-     * @param _kyberStaking KyberStaking contract address
-     * @param _kyberFeeHandler KyberFeeHandler contract address
-     * @param _epochNotice Number of epochs after which a change on delegationFee is will be applied
+     * @param _epochNotice Number of epochs after which a change on deledatioFee is will be applied
      * @param _delegationFee Fee charged by poolMasters to poolMembers for services - Denominated in 1e4 units - 100 = 1%
      */
     constructor(
-        address _kncToken,
         address _kyberDAO,
-        address _kyberStaking,
-        address _kyberFeeHandler,
         uint256 _epochNotice,
         uint256 _delegationFee
     ) public {
-        require(_kncToken != address(0), "ctor: kncToken is missing");
         require(_kyberDAO != address(0), "ctor: kyberDAO is missing");
-        require(_kyberStaking != address(0), "ctor: kyberStaking is missing");
-        require(
-            _kyberFeeHandler != address(0),
-            "ctor: kyberFeeHandler is missing"
-        );
         require(
             _epochNotice >= MINIMUM_EPOCH_NOTICE,
             "ctor: Epoch Notice too low"
@@ -103,10 +91,12 @@ contract KyberPoolMaster is Ownable {
             "ctor: Delegation Fee greater than 100%"
         );
 
-        kncToken = IERC20(_kncToken);
         kyberDAO = IExtendedKyberDAO(_kyberDAO);
-        kyberStaking = IKyberStaking(_kyberStaking);
-        kyberFeeHandler = IExtendedKyberFeeHandler(_kyberFeeHandler);
+
+        kncToken = IERC20(kyberDAO.kncToken());
+        kyberStaking = IKyberStaking(kyberDAO.staking());
+        kyberFeeHandler = IExtendedKyberFeeHandler(kyberDAO.feeHandler());
+
         epochNotice = _epochNotice;
 
         uint256 currEpoch = kyberDAO.getCurrentEpochNumber();

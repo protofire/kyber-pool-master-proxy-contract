@@ -126,15 +126,9 @@ contract('KyberPoolMaster vote', async (accounts) => {
       from: campCreator,
     });
 
-    poolMaster = await KyberPoolMaster.new(
-      kncToken.address,
-      daoContract.address,
-      stakingContract.address,
-      feeHandler.address,
-      2,
-      1,
-      {from: poolMasterOwner}
-    );
+    poolMaster = await KyberPoolMaster.new(daoContract.address, 2, 1, {
+      from: poolMasterOwner,
+    });
 
     await kncToken.approve(poolMaster.address, mulPrecision(100), {
       from: poolMasterOwner,
