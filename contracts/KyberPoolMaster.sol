@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 
 import "./interfaces/IExtendedKyberDAO.sol";
 import "./interfaces/IExtendedKyberFeeHandler.sol";
-import "smart-contracts/contracts/sol6/Dao/IKyberStaking.sol";
+import "./interfaces/IKyberStaking.sol";
 
 
 /**
