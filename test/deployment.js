@@ -24,54 +24,12 @@ contract('KyberPoolMaster deployment', async (accounts) => {
   });
 
   describe('deployment', () => {
-    // it('should not allow to deploy a KyberPoolMaster zero address kncToken', async () => {
-    //   await expectRevert(
-    //     KyberPoolMaster.new(
-    //       ZERO_ADDRESS,
-    //       ZERO_ADDRESS,
-    //       ZERO_ADDRESS,
-    //       ZERO_ADDRESS,
-    //       0,
-    //       0
-    //     ),
-    //     'ctor: kncToken is missing'
-    //   );
-    // });
-
     it('should not allow to deploy a KyberPoolMaster zero address kyberDAO', async () => {
       await expectRevert(
         KyberPoolMaster.new(ZERO_ADDRESS, 0, 0),
         'ctor: kyberDAO is missing'
       );
     });
-
-    // it('should not allow to deploy a KyberPoolMaster zero address kyberStaking', async () => {
-    //   await expectRevert(
-    //     KyberPoolMaster.new(
-    //       NO_ZERO_ADDRESS,
-    //       NO_ZERO_ADDRESS,
-    //       ZERO_ADDRESS,
-    //       ZERO_ADDRESS,
-    //       0,
-    //       0
-    //     ),
-    //     'ctor: kyberStaking is missing'
-    //   );
-    // });
-
-    // it('should not allow to deploy a KyberPoolMaster zero address kyberFeeHandler', async () => {
-    //   await expectRevert(
-    //     KyberPoolMaster.new(
-    //       NO_ZERO_ADDRESS,
-    //       NO_ZERO_ADDRESS,
-    //       NO_ZERO_ADDRESS,
-    //       ZERO_ADDRESS,
-    //       0,
-    //       0
-    //     ),
-    //     'ctor: kyberFeeHandler is missing'
-    //   );
-    // });
 
     it('should not allow to deploy a KyberPoolMaster with epochNotice lower than the minimum', async () => {
       await expectRevert(
