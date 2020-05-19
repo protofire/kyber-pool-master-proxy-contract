@@ -36,12 +36,12 @@ contract('KyberPoolMaster delegationFee', async (accounts) => {
 
   describe('delegation fees', () => {
     it('should set the right values when deploying the contract', async () => {
-      expectEvent.inConstruction(kyberPoolMaster, 'CommitNewFees', {
+      await expectEvent.inConstruction(kyberPoolMaster, 'CommitNewFees', {
         deadline: '2',
         feeRate: '1',
       });
 
-      expectEvent.inConstruction(kyberPoolMaster, 'NewFees', {
+      await expectEvent.inConstruction(kyberPoolMaster, 'NewFees', {
         fromEpoch: '2',
         feeRate: '1',
       });

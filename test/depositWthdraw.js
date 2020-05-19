@@ -32,7 +32,6 @@ let mike;
 let poolMaster;
 
 const NO_ZERO_ADDRESS = '0x0000000000000000000000000000000000000001';
-const MAX_DELEGATION_FEE = 10000;
 
 contract(
   'KyberPoolMaster masterDeposit and masterWithdraw',
@@ -78,18 +77,6 @@ contract(
 
     const blocksToSeconds = function (blocks) {
       return blocks * blockTime;
-    };
-
-    // future epoches
-    const increaseToEpoch = async (epoch) => {
-      const epochStartTime =
-        firstEpochStartTimestamp + (epoch - 1) * epochPeriod * blockTime;
-      return time.increaseTo(epochStartTime);
-    };
-
-    const increaseOneEpoch = async (epoch) => {
-      const currentEpoch = await stakingContract.getCurrentEpochNumber();
-      return increaseToEpoch(Number(currentEpoch.toString()) + 1);
     };
 
     describe('#Deposit Tests', () => {
@@ -154,7 +141,7 @@ contract(
       });
     });
     describe('#Withdraw Tests', () => {
-      it('should not be able to whitdraw 0 amount', async function () {
+      it('should not be able to withdraw 0 amount', async function () {
         await expectRevert(
           poolMaster.masterWithdraw(mulPrecision(0), {
             from: poolMasterOwner,
@@ -201,10 +188,6 @@ contract(
     });
   }
 );
-
-function logInfo(message) {
-  console.log('       ' + message);
-}
 
 function mulPrecision(value) {
   return precisionUnits.mul(new BN(value));
