@@ -27,10 +27,9 @@ The current KyberDAO delegation model allows for non-custodial delegation of KNC
 This sets a new delegation fee to be applied in a future epoch, lengthening the notice given to Pool members on any fee changes on the PoolMaster Contract to `epochNotice` epochs.
 The fee change notice is a public state variable `epochNotice` that can be configured on init, so that poolMasters have more flexibility.
 
-
 - Only 1 pending fee at any given time
 - If at the moment of committing a new fee there is a delegation fee pending to be applied:
-  - The pending fee still not able to applied, due to deadline not reached, the new fee will replace the pending one as the new pending
+  - The pending fee still not able to applied, due to deadline not reached, the new fee will replace the pending one as the new pending, renewing its deadline as well
   - The pending fee can be applied then mark as `applied` and add the new one as pending. Emit NewFees event
 - Emit CommitedNewFee event
 
