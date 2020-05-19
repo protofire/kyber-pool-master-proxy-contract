@@ -71,6 +71,8 @@ contract KyberPoolMaster is Ownable {
     );
 
     /**
+     * @dev Contract that allows pool masters to let pool members claim their designated rewards trustlessly and update fees
+     *      with sufficient notice times while maintaining full trustlessness.
      * @notice Address deploying this contract should be able to receive ETH, owner can be changed using transferOwnership method
      * @param _kyberDAO KyberDAO contract address
      * @param _epochNotice Number of epochs after which a change on deledatioFee is will be applied
@@ -196,6 +198,10 @@ contract KyberPoolMaster is Ownable {
         }
     }
 
+    /**
+     * @dev Applies a pending fee
+     * @param fee to be applied
+     */
     function applyFee(DFeeData storage fee) internal {
         fee.applied = true;
         emit NewFees(fee.fromEpoch, fee.fee);
@@ -424,6 +430,10 @@ contract KyberPoolMaster is Ownable {
     }
 
     // Utils
+
+    /**
+     * @dev Calculates rewards share based on the stake over the total stake
+     */
     function calculateRewardsShare(
         uint256 stake,
         uint256 totalStake,
@@ -432,16 +442,27 @@ contract KyberPoolMaster is Ownable {
         return stake.mul(rewards).div(totalStake);
     }
 
+    /**
+     * @dev Queries the number of elements in delegationFees
+     */
     function delegationFeesLength() public view returns (uint256) {
         return delegationFees.length;
     }
 
+    /**
+     * @dev Transfers the total amount of a given ERC20 deposited in this contracto a given address
+     * @param _token ERC20 token address
+     * @param _to address of the receiver
+     */
     function claimErc20Tokens(address _token, address _to) external onlyOwner {
         IERC20 token = IERC20(_token);
         uint256 balance = token.balanceOf(address(this));
         SafeERC20.safeTransfer(token, _to, balance);
     }
 
+    /**
+     * @dev Enables the contract to receive ETH
+     */
     receive() external payable {
         require(
             msg.sender == address(kyberFeeHandler),
