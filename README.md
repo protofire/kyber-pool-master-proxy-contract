@@ -42,7 +42,24 @@ This is used for noticing that a new fee has been applied.
 
 ## Deployment
 
-TODO
+1. Create a `.env` file using [.env.example](.env.example) and set:
+- `INFURA_PROJECT_ID` your Infura project id
+- `DEPLOYMENT_ACCOUNT_PK` your deploying address private key
+- `KYBER_DAO_ADDRESS` KyberDAO address
+  - Roptsten: `0x806f978fec453161d11c390c76edb78ff3a010be`
+  - Mainnet: `TBD`
+- `EPOCH_NOTICE` Delegation fee change notice
+- `INITIAL_DELEGATION_FEE` Initial delegation fee, denominated in 1e4 units - 100 = 1%
+
+2. Install dependencies
+```bash
+$ npm install
+```
+
+3. Run deployment script, where NETWORK is `ropsten` or `mainnet`
+```bash
+$ npm run deploy:NETWORK
+```
 
 ## APIs
 [PoolMaster contract APIs](docs/contract-apis.md)
