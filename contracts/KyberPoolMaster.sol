@@ -13,6 +13,8 @@ import "./interfaces/IKyberStaking.sol";
 /**
  * @title Kyber PoolMaster contract
  * @author Protofire
+ * @dev Contract that allows pool masters to let pool members claim their designated rewards trustlessly and update fees
+ *      with sufficient notice times while maintaining full trustlessness.
  */
 contract KyberPoolMaster is Ownable {
     using SafeMath for uint256;
@@ -71,8 +73,6 @@ contract KyberPoolMaster is Ownable {
     );
 
     /**
-     * @dev Contract that allows pool masters to let pool members claim their designated rewards trustlessly and update fees
-     *      with sufficient notice times while maintaining full trustlessness.
      * @notice Address deploying this contract should be able to receive ETH, owner can be changed using transferOwnership method
      * @param _kyberDAO KyberDAO contract address
      * @param _epochNotice Number of epochs after which a change on deledatioFee is will be applied
