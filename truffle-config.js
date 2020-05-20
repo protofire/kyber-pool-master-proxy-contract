@@ -28,7 +28,7 @@ require('dotenv').config();
 const HDWalletProvider = require('truffle-hdwallet-provider-privkey');
 
 const INFURA_PROJECT_ID = process.env.INFURA_PROJECT_ID;
-const DEPLOYMENT_ACCOUNT_PK = process.env.DEPLOYMENT_ACCOUNT_PK.replace(
+const DEPLOYMENT_ACCOUNT_PK = (process.env.DEPLOYMENT_ACCOUNT_PK || '').replace(
   /^0x/,
   ''
 );
