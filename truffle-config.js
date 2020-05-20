@@ -28,7 +28,11 @@ require('dotenv').config();
 const HDWalletProvider = require('truffle-hdwallet-provider-privkey');
 
 const INFURA_PROJECT_ID = process.env.INFURA_PROJECT_ID;
-const DEPLOYMENT_ACCOUNT_PK = process.env.DEPLOYMENT_ACCOUNT_PK;
+const DEPLOYMENT_ACCOUNT_PK = process.env.DEPLOYMENT_ACCOUNT_PK.replace(
+  /^0x/,
+  ''
+);
+const GAS_PRICE = process.env.GAS_PRICE || 10000000000;
 
 if (process.env.NODE_ENV !== 'test') {
   checkEnv();
@@ -48,8 +52,8 @@ module.exports = {
           `https://ropsten.infura.io/v3/${INFURA_PROJECT_ID}`
         ),
       network_id: 3,
-      gas: 6700000,
-      gasPrice: 10000000000,
+      gas: 4000000,
+      gasPrice: GAS_PRICE,
       skipDryRun: true,
     },
     mainnet: {
@@ -59,8 +63,8 @@ module.exports = {
           `https://mainnet.infura.io/v3/${INFURA_PROJECT_ID}`
         ),
       network_id: 1,
-      gas: 8000000,
-      gasPrice: 21000000000,
+      gas: 4000000,
+      gasPrice: GAS_PRICE,
       timeoutBlocks: 200,
     },
   },

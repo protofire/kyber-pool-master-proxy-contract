@@ -45,6 +45,7 @@ This is used for noticing that a new fee has been applied.
 1. Create a `.env` file using [.env.example](.env.example) and set:
 - `INFURA_PROJECT_ID` your Infura project id
 - `DEPLOYMENT_ACCOUNT_PK` your deploying address private key
+- `GAS_PRICE` gas price to be used
 - `KYBER_DAO_ADDRESS` KyberDAO address
   - Roptsten: `0x806f978fec453161d11c390c76edb78ff3a010be`
   - Mainnet: `TBD`
