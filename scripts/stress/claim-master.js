@@ -142,16 +142,14 @@ contract('KyberPoolMaster claiming', async (accounts) => {
 
       kyberStaking = await KyberStakingWithgetStakerDataForPastEpoch.new();
       kyberFeeHandler = await KyberFeeHandlerWithClaimStakerReward.new();
-      kyberDAO = await KyberDAOClaimReward.new(kyberFeeHandler.address);
-      kyberPoolMaster = await KyberPoolMaster.new(
+      kyberDAO = await KyberDAOClaimReward.new(
         NO_ZERO_ADDRESS,
-        kyberDAO.address,
         kyberStaking.address,
-        kyberFeeHandler.address,
-        2,
-        1,
-        {from: poolMasterOwner}
+        kyberFeeHandler.address
       );
+      kyberPoolMaster = await KyberPoolMaster.new(kyberDAO.address, 2, 1, {
+        from: poolMasterOwner,
+      });
 
       await Promise.all(
         Array.from({length: 17}, (v, i) =>

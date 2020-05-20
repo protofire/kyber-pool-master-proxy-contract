@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/math/SafeMath.sol";
 
 import "./interfaces/IExtendedKyberDAO.sol";
 import "./interfaces/IExtendedKyberFeeHandler.sol";
-import "smart-contracts/contracts/sol6/Dao/IKyberStaking.sol";
+import "./interfaces/IKyberStaking.sol";
 
 
 /**
@@ -71,29 +71,19 @@ contract KyberPoolMaster is Ownable {
     );
 
     /**
+     * @dev Contract that allows pool masters to let pool members claim their designated rewards trustlessly and update fees
+     *      with sufficient notice times while maintaining full trustlessness.
      * @notice Address deploying this contract should be able to receive ETH, owner can be changed using transferOwnership method
-     * @param _kncToken KNC Token address
      * @param _kyberDAO KyberDAO contract address
-     * @param _kyberStaking KyberStaking contract address
-     * @param _kyberFeeHandler KyberFeeHandler contract address
-     * @param _epochNotice Number of epochs after which a change on delegationFee is will be applied
+     * @param _epochNotice Number of epochs after which a change on deledatioFee is will be applied
      * @param _delegationFee Fee charged by poolMasters to poolMembers for services - Denominated in 1e4 units - 100 = 1%
      */
     constructor(
-        address _kncToken,
         address _kyberDAO,
-        address _kyberStaking,
-        address _kyberFeeHandler,
         uint256 _epochNotice,
         uint256 _delegationFee
     ) public {
-        require(_kncToken != address(0), "ctor: kncToken is missing");
         require(_kyberDAO != address(0), "ctor: kyberDAO is missing");
-        require(_kyberStaking != address(0), "ctor: kyberStaking is missing");
-        require(
-            _kyberFeeHandler != address(0),
-            "ctor: kyberFeeHandler is missing"
-        );
         require(
             _epochNotice >= MINIMUM_EPOCH_NOTICE,
             "ctor: Epoch Notice too low"
@@ -103,10 +93,12 @@ contract KyberPoolMaster is Ownable {
             "ctor: Delegation Fee greater than 100%"
         );
 
-        kncToken = IERC20(_kncToken);
         kyberDAO = IExtendedKyberDAO(_kyberDAO);
-        kyberStaking = IKyberStaking(_kyberStaking);
-        kyberFeeHandler = IExtendedKyberFeeHandler(_kyberFeeHandler);
+
+        kncToken = IERC20(kyberDAO.kncToken());
+        kyberStaking = IKyberStaking(kyberDAO.staking());
+        kyberFeeHandler = IExtendedKyberFeeHandler(kyberDAO.feeHandler());
+
         epochNotice = _epochNotice;
 
         uint256 currEpoch = kyberDAO.getCurrentEpochNumber();
@@ -206,6 +198,10 @@ contract KyberPoolMaster is Ownable {
         }
     }
 
+    /**
+     * @dev Applies a pending fee
+     * @param fee to be applied
+     */
     function applyFee(DFeeData storage fee) internal {
         fee.applied = true;
         emit NewFees(fee.fromEpoch, fee.fee);
@@ -434,6 +430,10 @@ contract KyberPoolMaster is Ownable {
     }
 
     // Utils
+
+    /**
+     * @dev Calculates rewards share based on the stake over the total stake
+     */
     function calculateRewardsShare(
         uint256 stake,
         uint256 totalStake,
@@ -442,16 +442,27 @@ contract KyberPoolMaster is Ownable {
         return stake.mul(rewards).div(totalStake);
     }
 
+    /**
+     * @dev Queries the number of elements in delegationFees
+     */
     function delegationFeesLength() public view returns (uint256) {
         return delegationFees.length;
     }
 
+    /**
+     * @dev Transfers the total amount of a given ERC20 deposited in this contracto a given address
+     * @param _token ERC20 token address
+     * @param _to address of the receiver
+     */
     function claimErc20Tokens(address _token, address _to) external onlyOwner {
         IERC20 token = IERC20(_token);
         uint256 balance = token.balanceOf(address(this));
         SafeERC20.safeTransfer(token, _to, balance);
     }
 
+    /**
+     * @dev Enables the contract to receive ETH
+     */
     receive() external payable {
         require(
             msg.sender == address(kyberFeeHandler),

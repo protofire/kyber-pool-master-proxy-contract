@@ -24,101 +24,36 @@ contract('KyberPoolMaster deployment', async (accounts) => {
   });
 
   describe('deployment', () => {
-    it('should not allow to deploy a KyberPoolMaster zero address kncToken', async () => {
-      await expectRevert(
-        KyberPoolMaster.new(
-          ZERO_ADDRESS,
-          ZERO_ADDRESS,
-          ZERO_ADDRESS,
-          ZERO_ADDRESS,
-          0,
-          0
-        ),
-        'ctor: kncToken is missing'
-      );
-    });
-
     it('should not allow to deploy a KyberPoolMaster zero address kyberDAO', async () => {
       await expectRevert(
-        KyberPoolMaster.new(
-          NO_ZERO_ADDRESS,
-          ZERO_ADDRESS,
-          ZERO_ADDRESS,
-          ZERO_ADDRESS,
-          0,
-          0
-        ),
+        KyberPoolMaster.new(ZERO_ADDRESS, 0, 0),
         'ctor: kyberDAO is missing'
-      );
-    });
-
-    it('should not allow to deploy a KyberPoolMaster zero address kyberStaking', async () => {
-      await expectRevert(
-        KyberPoolMaster.new(
-          NO_ZERO_ADDRESS,
-          NO_ZERO_ADDRESS,
-          ZERO_ADDRESS,
-          ZERO_ADDRESS,
-          0,
-          0
-        ),
-        'ctor: kyberStaking is missing'
-      );
-    });
-
-    it('should not allow to deploy a KyberPoolMaster zero address kyberFeeHandler', async () => {
-      await expectRevert(
-        KyberPoolMaster.new(
-          NO_ZERO_ADDRESS,
-          NO_ZERO_ADDRESS,
-          NO_ZERO_ADDRESS,
-          ZERO_ADDRESS,
-          0,
-          0
-        ),
-        'ctor: kyberFeeHandler is missing'
       );
     });
 
     it('should not allow to deploy a KyberPoolMaster with epochNotice lower than the minimum', async () => {
       await expectRevert(
-        KyberPoolMaster.new(
-          NO_ZERO_ADDRESS,
-          NO_ZERO_ADDRESS,
-          NO_ZERO_ADDRESS,
-          NO_ZERO_ADDRESS,
-          0,
-          0
-        ),
+        KyberPoolMaster.new(NO_ZERO_ADDRESS, 0, 0),
         'ctor: Epoch Notice too low.'
       );
     });
 
     it('should not allow to deploy a KyberPoolMaster with delegationFee greater than 100%', async () => {
       await expectRevert(
-        KyberPoolMaster.new(
-          NO_ZERO_ADDRESS,
-          NO_ZERO_ADDRESS,
-          NO_ZERO_ADDRESS,
-          NO_ZERO_ADDRESS,
-          1,
-          MAX_DELEGATION_FEE + 1
-        ),
+        KyberPoolMaster.new(NO_ZERO_ADDRESS, 1, MAX_DELEGATION_FEE + 1),
         'ctor: Delegation Fee greater than 100%'
       );
     });
 
     it('should set the right parameters', async () => {
-      const kyberDAO = await KyberDAO.new();
-      kyberPoolMaster = await KyberPoolMaster.new(
-        NO_ZERO_ADDRESS,
-        kyberDAO.address,
+      const kyberDAO = await KyberDAO.new(
         NO_ZERO_ADDRESS,
         NO_ZERO_ADDRESS,
-        2,
-        1,
-        {from: poolMasterOwner}
+        NO_ZERO_ADDRESS
       );
+      kyberPoolMaster = await KyberPoolMaster.new(kyberDAO.address, 2, 1, {
+        from: poolMasterOwner,
+      });
 
       const kncTokenAddress = await kyberPoolMaster.kncToken();
       expect(kncTokenAddress).to.equal(NO_ZERO_ADDRESS);
@@ -161,16 +96,14 @@ contract('KyberPoolMaster deployment', async (accounts) => {
 
   describe('ownership', () => {
     before('one time init', async () => {
-      const kyberDAO = await KyberDAO.new();
-      kyberPoolMaster = await KyberPoolMaster.new(
-        NO_ZERO_ADDRESS,
-        kyberDAO.address,
+      const kyberDAO = await KyberDAO.new(
         NO_ZERO_ADDRESS,
         NO_ZERO_ADDRESS,
-        2,
-        1,
-        {from: poolMasterOwner}
+        NO_ZERO_ADDRESS
       );
+      kyberPoolMaster = await KyberPoolMaster.new(kyberDAO.address, 2, 1, {
+        from: poolMasterOwner,
+      });
     });
 
     it('should have the right owner', async () => {
