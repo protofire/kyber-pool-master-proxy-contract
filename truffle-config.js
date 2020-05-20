@@ -27,15 +27,12 @@
 require('dotenv').config();
 const HDWalletProvider = require('truffle-hdwallet-provider-privkey');
 
-const INFURA_PROJECT_ID = process.env.INFURA_PROJECT_ID;
-const DEPLOYMENT_ACCOUNT_PK = (process.env.DEPLOYMENT_ACCOUNT_PK || '').replace(
-  /^0x/,
-  ''
-);
-const GAS_PRICE = process.env.GAS_PRICE || 10000000000;
+let INFURA_PROJECT_ID;
+let DEPLOYMENT_ACCOUNT_PK;
+let GAS_PRICE;
 
 if (process.env.NODE_ENV !== 'test') {
-  checkEnv();
+  [INFURA_PROJECT_ID, DEPLOYMENT_ACCOUNT_PK, GAS_PRICE] = getEnv();
 }
 
 module.exports = {
@@ -93,9 +90,12 @@ module.exports = {
   },
 };
 
-function checkEnv() {
+function getEnv() {
   const INFURA_PROJECT_ID = process.env.INFURA_PROJECT_ID;
-  const DEPLOYMENT_ACCOUNT_PK = process.env.DEPLOYMENT_ACCOUNT_PK;
+  const DEPLOYMENT_ACCOUNT_PK = (
+    process.env.DEPLOYMENT_ACCOUNT_PK || ''
+  ).replace(/^0x/, '');
+  const GAS_PRICE = process.env.GAS_PRICE || 10000000000;
   const KYBER_DAO_ADDRESS = process.env.KYBER_DAO_ADDRESS;
   const EPOCH_NOTICE = process.env.EPOCH_NOTICE;
   const INITIAL_DELEGATION_FEE = process.env.INITIAL_DELEGATION_FEE;
@@ -109,4 +109,6 @@ function checkEnv() {
   ) {
     throw 'Missing env';
   }
+
+  return [INFURA_PROJECT_ID, DEPLOYMENT_ACCOUNT_PK, GAS_PRICE];
 }
