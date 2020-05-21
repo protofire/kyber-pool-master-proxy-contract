@@ -204,16 +204,17 @@ Return 0 when:
 - PoolMember has not delegated it stake to this contract for the epoch
 
 ---
-function **`getUnclaimedRewardsMember`**public view returns (uint256)
+function **`getUnclaimedRewardsMember`**(address poolMember, uint256 epoch) public view returns (uint256)
 | Parameter | Type | Description |
 | ---------- |:-------:|:-------------------:|
+| `poolMember` | address | address of pool member |
 | `epoch` | uint256 | for which epoch the memmber is querying unclaimed reward |
 
 #### Example
-Pool Member queries its unclaimed reward for epoch 5
+Query some pool member unclaimed reward for epoch 5
 
 ```bash
-eth contract:call --NETWORK KyberPoolMaster@KYBER_POOL_MASTER_CONTRACT_ADDRESS 'getUnclaimedRewardsMember(5)' --pk=USER_WALLET_ADDRESS_PK
+eth contract:call --NETWORK KyberPoolMaster@KYBER_POOL_MASTER_CONTRACT_ADDRESS 'getUnclaimedRewardsMember(SOME_POOL_MEMBER_ADDRESS, 5)'
 ```
 
 #### claimRewardMember
