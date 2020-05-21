@@ -357,9 +357,10 @@ contract KyberPoolMaster is Ownable {
      *       return 0 if PoolMember has previously claimed reward for the epoch
      *       return 0 if PoolMember has not stake for the epoch
      *       return 0 if PoolMember has not delegated it stake to this contract for the epoch
+     * @param poolMember address of pool member
      * @param epoch for which epoch the member is querying unclaimed reward
      */
-    function getUnclaimedRewardsMember(uint256 epoch)
+    function getUnclaimedRewardsMember(address poolMember, uint256 epoch)
         public
         view
         returns (uint256)
@@ -367,8 +368,6 @@ contract KyberPoolMaster is Ownable {
         if (!claimedPoolReward[epoch]) {
             return 0;
         }
-
-        address poolMember = msg.sender;
 
         if (claimedDelegateReward[epoch][poolMember]) {
             return 0;
@@ -414,7 +413,7 @@ contract KyberPoolMaster is Ownable {
             "cRMember: rewards already claimed"
         );
 
-        uint256 poolMemberShare = getUnclaimedRewardsMember(epoch);
+        uint256 poolMemberShare = getUnclaimedRewardsMember(poolMember, epoch);
 
         require(poolMemberShare > 0, "cRMember: no rewards to claim");
 
