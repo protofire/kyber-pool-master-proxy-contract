@@ -479,7 +479,10 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       const claimedReward = await kyberPoolMaster.claimedPoolReward(1);
       expect(claimedReward).to.equal(false);
 
-      const unclaimed = await kyberPoolMaster.getUnclaimedRewardsMember(1);
+      const unclaimed = await kyberPoolMaster.getUnclaimedRewardsMember(
+        mike,
+        1
+      );
 
       expect(unclaimed.toString()).to.equal('0');
     });
@@ -496,9 +499,10 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       );
       expect(claimedRewardMember).to.equal(true);
 
-      const unclaimed = await kyberPoolMaster.getUnclaimedRewardsMember(1, {
-        from: mike,
-      });
+      const unclaimed = await kyberPoolMaster.getUnclaimedRewardsMember(
+        mike,
+        1
+      );
       expect(unclaimed.toString()).to.equal('0');
     });
 
@@ -520,9 +524,10 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       );
       expect(stakerDataForPastEpoch[0].toString()).to.equal('0');
 
-      const unclaimed = await kyberPoolMaster.getUnclaimedRewardsMember(1, {
-        from: mike,
-      });
+      const unclaimed = await kyberPoolMaster.getUnclaimedRewardsMember(
+        mike,
+        1
+      );
       expect(unclaimed.toString()).to.equal('0');
     });
 
@@ -545,9 +550,10 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       expect(stakerDataForPastEpoch[0].toString()).to.equal('1');
       expect(stakerDataForPastEpoch[2]).not.to.equal(kyberPoolMaster.address);
 
-      const unclaimed = await kyberPoolMaster.getUnclaimedRewardsMember(1, {
-        from: mike,
-      });
+      const unclaimed = await kyberPoolMaster.getUnclaimedRewardsMember(
+        mike,
+        1
+      );
       expect(unclaimed.toString()).to.equal('0');
     });
 
@@ -572,9 +578,10 @@ contract('KyberPoolMaster claiming', async (accounts) => {
 
       await kyberPoolMaster.setMemberRewards(1, 10, 5);
 
-      const unclaimed = await kyberPoolMaster.getUnclaimedRewardsMember(1, {
-        from: mike,
-      });
+      const unclaimed = await kyberPoolMaster.getUnclaimedRewardsMember(
+        mike,
+        1
+      );
       expect(unclaimed.toString()).to.equal('2');
     });
   });
