@@ -39,4 +39,14 @@ interface IKyberStaking is IEpochUtils {
             uint256 _delegatedStake,
             address _delegatedAddress
         );
+
+    function getStake(address staker, uint256 epoch)
+        external
+        view
+        returns (uint256);
+
+    function getDelegatedAddress(address staker, uint256 epoch)
+        external
+        view
+        returns (address);
 }

@@ -29,4 +29,26 @@ contract KyberStakingWithgetStakerDataForPastEpoch {
         _delegatedStake = stakerData.delegatedStake;
         _delegatedAddress = stakerData.delegatedAddress;
     }
+
+  function getStake(address staker, uint256 epoch)
+        external
+        view
+        returns (
+            uint256 _stake
+        )
+    {
+        StakerData memory stakerData = stakerPerEpochData[epoch][staker];
+        _stake = stakerData.stake;
+    }
+
+  function getDelegatedAddress(address staker, uint256 epoch)
+        external
+        view
+        returns (
+            address _delegatedAddress
+        )
+    {
+        StakerData memory stakerData = stakerPerEpochData[epoch][staker];
+        _delegatedAddress = stakerData.delegatedAddress;
+    }
 }
