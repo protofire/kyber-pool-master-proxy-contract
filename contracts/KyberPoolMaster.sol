@@ -373,8 +373,11 @@ contract KyberPoolMaster is Ownable {
             return 0;
         }
 
-        (uint256 stake, , address delegatedAddr) = kyberStaking
-            .getStakerDataForPastEpoch(poolMember, epoch);
+        uint256 stake = kyberStaking.getStake(poolMember, epoch);
+        address delegatedAddr = kyberStaking.getDelegatedAddress(
+            poolMember,
+            epoch
+        );
 
         if (stake == 0) {
             return 0;
