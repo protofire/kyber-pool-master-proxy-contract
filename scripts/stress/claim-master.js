@@ -5,8 +5,8 @@ const KyberDAOClaimReward = artifacts.require('KyberDAOClaimReward');
 const KyberFeeHandlerWithClaimStakerReward = artifacts.require(
   'KyberFeeHandlerWithClaimStakerReward'
 );
-const KyberStakingWithgetStakerDataForPastEpoch = artifacts.require(
-  'KyberStakingWithgetStakerDataForPastEpoch'
+const KyberStakingWithgetStakerDataForEpoch = artifacts.require(
+  'KyberStakingWithgetStakerDataForEpoch'
 );
 
 const {expect} = require('chai');
@@ -140,7 +140,7 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       poolMasterOwner = accounts[1];
       mike = accounts[2];
 
-      kyberStaking = await KyberStakingWithgetStakerDataForPastEpoch.new();
+      kyberStaking = await KyberStakingWithgetStakerDataForEpoch.new();
       kyberFeeHandler = await KyberFeeHandlerWithClaimStakerReward.new();
       kyberDAO = await KyberDAOClaimReward.new(
         NO_ZERO_ADDRESS,

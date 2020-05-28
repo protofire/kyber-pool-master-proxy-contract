@@ -3,7 +3,7 @@ const KyberDAO = artifacts.require('KyberDAOHandleCurrentEpoch');
 
 // Mocks
 const TestToken = artifacts.require('Token.sol');
-const StakingContract = artifacts.require('MockStakingContract.sol');
+const StakingContract = artifacts.require('MockKyberStaking.sol');
 
 const {expect} = require('chai');
 const {

@@ -1,54 +1,48 @@
 pragma solidity 0.6.6;
 
-contract KyberStakingWithgetStakerDataForPastEpoch {
+contract KyberStakingWithgetStakerDataForEpoch {
   struct StakerData {
       uint256 stake;
       uint256 delegatedStake;
-      address delegatedAddress;
+      address representative;
   }
 
   mapping(uint256 => mapping(address => StakerData)) internal stakerPerEpochData;
 
   constructor() public {}
 
-  function setStakerData(uint256 epoch, address staker, uint256 stake, uint256 delegatedStake, address delegatedAddress) public {
-      stakerPerEpochData[epoch][staker] = StakerData(stake, delegatedStake, delegatedAddress);
+  function setStakerData(uint256 epoch, address staker, uint256 stake, uint256 delegatedStake, address representative) public {
+      stakerPerEpochData[epoch][staker] = StakerData(stake, delegatedStake, representative);
   }
 
-  function getStakerDataForPastEpoch(address staker, uint256 epoch)
+  function getStakerRawData(address staker, uint256 epoch)
         external
         view
         returns (
             uint256 _stake,
             uint256 _delegatedStake,
-            address _delegatedAddress
+            address _representative
         )
     {
         StakerData memory stakerData = stakerPerEpochData[epoch][staker];
         _stake = stakerData.stake;
         _delegatedStake = stakerData.delegatedStake;
-        _delegatedAddress = stakerData.delegatedAddress;
+        _representative = stakerData.representative;
     }
 
-  function getStake(address staker, uint256 epoch)
-        external
-        view
+  function getStakerData(address staker, uint256 epoch)
+        external view
         returns (
-            uint256 _stake
+            uint256 stake,
+            uint256 delegatedStake,
+            address representative
         )
     {
         StakerData memory stakerData = stakerPerEpochData[epoch][staker];
-        _stake = stakerData.stake;
+        stake = stakerData.stake;
+        delegatedStake = stakerData.delegatedStake;
+        representative = stakerData.representative;
     }
 
-  function getDelegatedAddress(address staker, uint256 epoch)
-        external
-        view
-        returns (
-            address _delegatedAddress
-        )
-    {
-        StakerData memory stakerData = stakerPerEpochData[epoch][staker];
-        _delegatedAddress = stakerData.delegatedAddress;
-    }
+
 }
