@@ -9,8 +9,8 @@ const KyberFeeHandlerWithRewardPerEposhSetter = artifacts.require(
 const KyberFeeHandlerWithClaimStakerReward = artifacts.require(
   'KyberFeeHandlerWithClaimStakerReward'
 );
-const KyberStakingWithgetStakerDataForPastEpoch = artifacts.require(
-  'KyberStakingWithgetStakerDataForPastEpoch'
+const KyberStakingWithgetStakerDataForEpoch = artifacts.require(
+  'KyberStakingWithgetStakerDataForEpoch'
 );
 
 const PoolMasterNoFallbackMock = artifacts.require('PoolMasterNoFallbackMock');
@@ -163,7 +163,7 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       notOwner = accounts[3];
       mike = accounts[4];
 
-      kyberStaking = await KyberStakingWithgetStakerDataForPastEpoch.new();
+      kyberStaking = await KyberStakingWithgetStakerDataForEpoch.new();
       kyberFeeHandler = await KyberFeeHandlerWithClaimStakerReward.new();
       kyberDAO = await KyberDAOClaimReward.new(
         NO_ZERO_ADDRESS,
@@ -453,7 +453,7 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       notOwner = accounts[3];
       mike = accounts[4];
 
-      kyberStaking = await KyberStakingWithgetStakerDataForPastEpoch.new();
+      kyberStaking = await KyberStakingWithgetStakerDataForEpoch.new();
       kyberFeeHandler = await KyberFeeHandlerWithClaimStakerReward.new();
       kyberDAO = await KyberDAOClaimReward.new(
         NO_ZERO_ADDRESS,
@@ -518,11 +518,8 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       expect(claimedRewardMember).to.equal(false);
 
       await kyberStaking.setStakerData(1, mike, 0, 0, kyberPoolMaster.address);
-      const stakerDataForPastEpoch = await kyberStaking.getStakerDataForPastEpoch(
-        mike,
-        1
-      );
-      expect(stakerDataForPastEpoch[0].toString()).to.equal('0');
+      const stakerRawData = await kyberStaking.getStakerRawData(mike, 1);
+      expect(stakerRawData[0].toString()).to.equal('0');
 
       const unclaimed = await kyberPoolMaster.getUnclaimedRewardsMember(
         mike,
@@ -543,12 +540,9 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       expect(claimedRewardMember).to.equal(false);
 
       await kyberStaking.setStakerData(1, mike, 1, 0, notOwner);
-      const stakerDataForPastEpoch = await kyberStaking.getStakerDataForPastEpoch(
-        mike,
-        1
-      );
-      expect(stakerDataForPastEpoch[0].toString()).to.equal('1');
-      expect(stakerDataForPastEpoch[2]).not.to.equal(kyberPoolMaster.address);
+      const stakerRawData = await kyberStaking.getStakerRawData(mike, 1);
+      expect(stakerRawData[0].toString()).to.equal('1');
+      expect(stakerRawData[2]).not.to.equal(kyberPoolMaster.address);
 
       const unclaimed = await kyberPoolMaster.getUnclaimedRewardsMember(
         mike,
@@ -569,12 +563,9 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       expect(claimedRewardMember).to.equal(false);
 
       await kyberStaking.setStakerData(1, mike, 1, 0, kyberPoolMaster.address);
-      const stakerDataForPastEpoch = await kyberStaking.getStakerDataForPastEpoch(
-        mike,
-        1
-      );
-      expect(stakerDataForPastEpoch[0].toString()).to.equal('1');
-      expect(stakerDataForPastEpoch[2]).to.equal(kyberPoolMaster.address);
+      const stakerRawData = await kyberStaking.getStakerRawData(mike, 1);
+      expect(stakerRawData[0].toString()).to.equal('1');
+      expect(stakerRawData[2]).to.equal(kyberPoolMaster.address);
 
       await kyberPoolMaster.setMemberRewards(1, 10, 5);
 
@@ -597,7 +588,7 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       paula = accounts[5];
       cris = accounts[6];
 
-      kyberStaking = await KyberStakingWithgetStakerDataForPastEpoch.new();
+      kyberStaking = await KyberStakingWithgetStakerDataForEpoch.new();
       kyberFeeHandler = await KyberFeeHandlerWithClaimStakerReward.new();
       kyberDAO = await KyberDAOClaimReward.new(
         NO_ZERO_ADDRESS,
@@ -652,11 +643,8 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       expect(claimedRewardMember).to.equal(false);
 
       await kyberStaking.setStakerData(1, mike, 0, 0, kyberPoolMaster.address);
-      const stakerDataForPastEpoch = await kyberStaking.getStakerDataForPastEpoch(
-        mike,
-        1
-      );
-      expect(stakerDataForPastEpoch[0].toString()).to.equal('0');
+      const stakerRawData = await kyberStaking.getStakerRawData(mike, 1);
+      expect(stakerRawData[0].toString()).to.equal('0');
 
       await expectRevert(
         kyberPoolMaster.claimRewardMember(1, {from: mike}),
@@ -676,12 +664,9 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       expect(claimedRewardMember).to.equal(false);
 
       await kyberStaking.setStakerData(1, mike, 1, 0, notOwner);
-      const stakerDataForPastEpoch = await kyberStaking.getStakerDataForPastEpoch(
-        mike,
-        1
-      );
-      expect(stakerDataForPastEpoch[0].toString()).to.equal('1');
-      expect(stakerDataForPastEpoch[2]).not.to.equal(kyberPoolMaster.address);
+      const stakerRawData = await kyberStaking.getStakerRawData(mike, 1);
+      expect(stakerRawData[0].toString()).to.equal('1');
+      expect(stakerRawData[2]).not.to.equal(kyberPoolMaster.address);
 
       await expectRevert(
         kyberPoolMaster.claimRewardMember(1, {from: mike}),
@@ -701,12 +686,9 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       expect(claimedRewardMember).to.equal(false);
 
       await kyberStaking.setStakerData(1, mike, 1, 0, kyberPoolMaster.address);
-      const stakerDataForPastEpoch = await kyberStaking.getStakerDataForPastEpoch(
-        mike,
-        1
-      );
-      expect(stakerDataForPastEpoch[0].toString()).to.equal('1');
-      expect(stakerDataForPastEpoch[2]).to.equal(kyberPoolMaster.address);
+      const stakerRawData = await kyberStaking.getStakerRawData(mike, 1);
+      expect(stakerRawData[0].toString()).to.equal('1');
+      expect(stakerRawData[2]).to.equal(kyberPoolMaster.address);
 
       await kyberPoolMaster.setMemberRewards(1, 10, 5);
 

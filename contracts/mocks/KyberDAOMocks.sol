@@ -75,3 +75,19 @@ contract KyberDAOClaimReward is KyberDAOWithRewardPercentageSetter {
         );
     }
 }
+
+contract KyberDAOVote is KyberDAOClaimReward {
+    event Voted(address indexed staker, uint indexed epoch, uint indexed campaignID, uint option);
+
+    constructor(
+        address _knc,
+        address _staking,
+        address payable _feeHandler
+    ) public KyberDAOClaimReward(_knc, _staking, _feeHandler) {
+    }
+
+    function vote(uint256 campaignID, uint256 option) external {
+        address staker = msg.sender;
+        emit Voted(staker, curEpoch, campaignID, option);
+    }
+}
