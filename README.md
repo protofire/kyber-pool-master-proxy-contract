@@ -98,6 +98,10 @@ npm run flatten
 ```
 The flattened contracts can be found in the `flats` directory.
 
+## Help and Support
+Please do not hesitate to reach out to us through http://protofire.io
+
+
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
