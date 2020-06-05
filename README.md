@@ -47,7 +47,7 @@ This is used for noticing that a new fee has been applied.
 - `DEPLOYMENT_ACCOUNT_PK` your deploying address private key
 - `GAS_PRICE` gas price to be used, denominated in wei
 - `KYBER_DAO_ADDRESS` KyberDAO address
-  - Roptsten: `0x806f978fec453161d11c390c76edb78ff3a010be`
+  - Roptsten: `0xD6BbF4569AF8ec8D50E9ECd4AC1a055AA9Be449E`
   - Mainnet: `TBD`
 - `EPOCH_NOTICE` Delegation fee change notice. Integer parameter, for example EPOCH_NOTICE=2, then on the epoch #10 if you change the delegation fee (commitNewFee), that new fee starts on epoch #12
 - `INITIAL_DELEGATION_FEE` Initial delegation fee, denominated in 1e4 units - 100 = 1%
