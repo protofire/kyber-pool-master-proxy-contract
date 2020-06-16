@@ -1,8 +1,5 @@
 const KyberPoolMaster = artifacts.require('KyberPoolMasterWithSetters');
-const KyberDAOWithRewardPercentageSetter = artifacts.require(
-  'KyberDAOWithRewardPercentageSetter'
-);
-const KyberDAOClaimReward = artifacts.require('KyberDAOClaimReward');
+const KyberDAO = artifacts.require('KyberDAOWithRewardPercentageSetter');
 const KyberFeeHandlerWithRewardPerEposhSetter = artifacts.require(
   'KyberFeeHandlerWithRewardPerEposhSetter'
 );
@@ -52,15 +49,21 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       notOwner = accounts[3];
       mike = accounts[4];
 
-      kyberFeeHandler = await KyberFeeHandlerWithRewardPerEposhSetter.new();
-      kyberDAO = await KyberDAOWithRewardPercentageSetter.new(
-        NO_ZERO_ADDRESS,
-        NO_ZERO_ADDRESS,
-        kyberFeeHandler.address
+      kyberDAO = await KyberDAO.new(NO_ZERO_ADDRESS, NO_ZERO_ADDRESS);
+
+      kyberFeeHandler = await KyberFeeHandlerWithRewardPerEposhSetter.new(
+        kyberDAO.address
       );
-      kyberPoolMaster = await KyberPoolMaster.new(kyberDAO.address, 2, 1, {
-        from: poolMasterOwner,
-      });
+
+      kyberPoolMaster = await KyberPoolMaster.new(
+        kyberDAO.address,
+        kyberFeeHandler.address,
+        2,
+        1,
+        {
+          from: poolMasterOwner,
+        }
+      );
     });
 
     it('should return 0 if PoolMaster has calledRewardMaster', async () => {
@@ -164,14 +167,16 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       mike = accounts[4];
 
       kyberStaking = await KyberStakingWithgetStakerDataForEpoch.new();
-      kyberFeeHandler = await KyberFeeHandlerWithClaimStakerReward.new();
-      kyberDAO = await KyberDAOClaimReward.new(
-        NO_ZERO_ADDRESS,
-        kyberStaking.address,
-        kyberFeeHandler.address
+
+      kyberDAO = await KyberDAO.new(NO_ZERO_ADDRESS, kyberStaking.address);
+
+      kyberFeeHandler = await KyberFeeHandlerWithClaimStakerReward.new(
+        kyberDAO.address
       );
+
       kyberPoolMaster = await KyberPoolMaster.new(
         kyberDAO.address,
+        kyberFeeHandler.address,
         2,
         100, // Denominated in 1e4 units - 100 = 1%
         {from: poolMasterOwner}
@@ -454,14 +459,13 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       mike = accounts[4];
 
       kyberStaking = await KyberStakingWithgetStakerDataForEpoch.new();
-      kyberFeeHandler = await KyberFeeHandlerWithClaimStakerReward.new();
-      kyberDAO = await KyberDAOClaimReward.new(
-        NO_ZERO_ADDRESS,
-        kyberStaking.address,
-        kyberFeeHandler.address
+      kyberDAO = await KyberDAO.new(NO_ZERO_ADDRESS, kyberStaking.address);
+      kyberFeeHandler = await KyberFeeHandlerWithClaimStakerReward.new(
+        kyberDAO.address
       );
       kyberPoolMaster = await KyberPoolMaster.new(
         kyberDAO.address,
+        kyberFeeHandler.address,
         2,
         100, // Denominated in 1e4 units - 100 = 1%
         {from: poolMasterOwner}
@@ -589,14 +593,13 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       cris = accounts[6];
 
       kyberStaking = await KyberStakingWithgetStakerDataForEpoch.new();
-      kyberFeeHandler = await KyberFeeHandlerWithClaimStakerReward.new();
-      kyberDAO = await KyberDAOClaimReward.new(
-        NO_ZERO_ADDRESS,
-        kyberStaking.address,
-        kyberFeeHandler.address
+      kyberDAO = await KyberDAO.new(NO_ZERO_ADDRESS, kyberStaking.address);
+      kyberFeeHandler = await KyberFeeHandlerWithClaimStakerReward.new(
+        kyberDAO.address
       );
       kyberPoolMaster = await KyberPoolMaster.new(
         kyberDAO.address,
+        kyberFeeHandler.address,
         2,
         100, // Denominated in 1e4 units - 100 = 1%
         {from: poolMasterOwner, value: '1000000000000000000'}

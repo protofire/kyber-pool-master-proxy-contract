@@ -1,23 +1,18 @@
 pragma solidity 0.6.6;
 
-import "./KyberFeeHandlerMocks.sol";
-
 contract KyberDAOHandleCurrentEpoch {
     uint256 internal curEpoch;
 
     address public kncToken;
     address public staking;
-    address public feeHandler;
 
     constructor(
         address _knc,
-        address _staking,
-        address _feeHandler
+        address _staking
     ) public {
         curEpoch = 0;
         kncToken = _knc;
         staking = _staking;
-        feeHandler = _feeHandler;
     }
 
     function getCurrentEpochNumber() public view returns (uint256) {
@@ -34,9 +29,9 @@ contract KyberDAOWithRewardPercentageSetter is KyberDAOHandleCurrentEpoch {
 
     constructor(
         address _knc,
-        address _staking,
-        address _feeHandler
-    ) public KyberDAOHandleCurrentEpoch(_knc, _staking, _feeHandler) {}
+        address _staking
+
+    ) public KyberDAOHandleCurrentEpoch(_knc, _staking) {}
 
     function getStakerRewardPercentageInPrecision(address staker, uint256 epoch)
         public
@@ -55,35 +50,13 @@ contract KyberDAOWithRewardPercentageSetter is KyberDAOHandleCurrentEpoch {
     }
 }
 
-contract KyberDAOClaimReward is KyberDAOWithRewardPercentageSetter {
-    KyberFeeHandlerWithClaimStakerReward public feeHandlerWithClaimStakerReward;
-
-    constructor(
-        address _knc,
-        address _staking,
-        address payable _feeHandler
-    ) public KyberDAOWithRewardPercentageSetter(_knc, _staking, _feeHandler) {
-        feeHandlerWithClaimStakerReward = KyberFeeHandlerWithClaimStakerReward(_feeHandler);
-    }
-
-    function claimReward(address staker, uint256 epoch) external {
-        uint256 perInPrecision = getStakerRewardPercentageInPrecision(staker, epoch);
-
-        require(
-            feeHandlerWithClaimStakerReward.claimStakerReward(staker, perInPrecision, epoch),
-            "claimReward: feeHandle failed to claim"
-        );
-    }
-}
-
-contract KyberDAOVote is KyberDAOClaimReward {
+contract KyberDAOVote is KyberDAOWithRewardPercentageSetter {
     event Voted(address indexed staker, uint indexed epoch, uint indexed campaignID, uint option);
 
     constructor(
         address _knc,
-        address _staking,
-        address payable _feeHandler
-    ) public KyberDAOClaimReward(_knc, _staking, _feeHandler) {
+        address _staking
+    ) public KyberDAOWithRewardPercentageSetter(_knc, _staking) {
     }
 
     function vote(uint256 campaignID, uint256 option) external {

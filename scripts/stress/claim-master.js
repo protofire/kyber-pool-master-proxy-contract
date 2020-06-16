@@ -1,6 +1,8 @@
 const KyberPoolMaster = artifacts.require('KyberPoolMasterWithSetters');
 
-const KyberDAOClaimReward = artifacts.require('KyberDAOClaimReward');
+const KyberDAOWithRewardPercentageSetter = artifacts.require(
+  'KyberDAOWithRewardPercentageSetter'
+);
 
 const KyberFeeHandlerWithClaimStakerReward = artifacts.require(
   'KyberFeeHandlerWithClaimStakerReward'
@@ -141,15 +143,22 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       mike = accounts[2];
 
       kyberStaking = await KyberStakingWithgetStakerDataForEpoch.new();
-      kyberFeeHandler = await KyberFeeHandlerWithClaimStakerReward.new();
-      kyberDAO = await KyberDAOClaimReward.new(
+      kyberDAO = await KyberDAOWithRewardPercentageSetter.new(
         NO_ZERO_ADDRESS,
-        kyberStaking.address,
-        kyberFeeHandler.address
+        kyberStaking.address
       );
-      kyberPoolMaster = await KyberPoolMaster.new(kyberDAO.address, 2, 1, {
-        from: poolMasterOwner,
-      });
+      kyberFeeHandler = await KyberFeeHandlerWithClaimStakerReward.new(
+        kyberDAO.address
+      );
+      kyberPoolMaster = await KyberPoolMaster.new(
+        kyberDAO.address,
+        kyberFeeHandler.address,
+        2,
+        1,
+        {
+          from: poolMasterOwner,
+        }
+      );
 
       await Promise.all(
         Array.from({length: 17}, (v, i) =>

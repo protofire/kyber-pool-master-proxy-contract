@@ -35,16 +35,22 @@ contract('KyberPoolMaster vote', async (accounts) => {
     await kncToken.transfer(mike, mulPrecision(1000000));
 
     kyberStaking = await KyberStakingWithgetStakerDataForEpoch.new();
-    kyberFeeHandler = await KyberFeeHandlerWithClaimStakerReward.new();
-    kyberDAO = await KyberDAOVote.new(
-      NO_ZERO_ADDRESS,
-      kyberStaking.address,
-      kyberFeeHandler.address
+
+    kyberDAO = await KyberDAOVote.new(NO_ZERO_ADDRESS, kyberStaking.address);
+
+    kyberFeeHandler = await KyberFeeHandlerWithClaimStakerReward.new(
+      kyberDAO.address
     );
 
-    poolMaster = await KyberPoolMaster.new(kyberDAO.address, 2, 1, {
-      from: poolMasterOwner,
-    });
+    poolMaster = await KyberPoolMaster.new(
+      kyberDAO.address,
+      kyberFeeHandler.address,
+      2,
+      1,
+      {
+        from: poolMasterOwner,
+      }
+    );
 
     await kncToken.approve(poolMaster.address, mulPrecision(100), {
       from: poolMasterOwner,

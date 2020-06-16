@@ -20,16 +20,18 @@ contract('KyberPoolMaster delegationFee', async (accounts) => {
     notOwner = accounts[3];
     mike = accounts[4];
 
-    kyberDAO = await KyberDAO.new(
-      NO_ZERO_ADDRESS,
-      NO_ZERO_ADDRESS,
-      NO_ZERO_ADDRESS
-    );
+    kyberDAO = await KyberDAO.new(NO_ZERO_ADDRESS, NO_ZERO_ADDRESS);
     await kyberDAO.setCurrentEpochNumber(2);
 
-    kyberPoolMaster = await KyberPoolMaster.new(kyberDAO.address, 2, 1, {
-      from: poolMasterOwner,
-    });
+    kyberPoolMaster = await KyberPoolMaster.new(
+      kyberDAO.address,
+      NO_ZERO_ADDRESS,
+      2,
+      1,
+      {
+        from: poolMasterOwner,
+      }
+    );
   });
 
   describe('delegation fees', () => {

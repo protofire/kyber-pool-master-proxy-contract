@@ -75,15 +75,21 @@ contract KyberPoolMaster is Ownable {
     /**
      * @notice Address deploying this contract should be able to receive ETH, owner can be changed using transferOwnership method
      * @param _kyberDAO KyberDAO contract address
+     * @param _kyberFeeHandler KyberFeeHandler contract address
      * @param _epochNotice Number of epochs after which a change on deledatioFee is will be applied
      * @param _delegationFee Fee charged by poolMasters to poolMembers for services - Denominated in 1e4 units - 100 = 1%
      */
     constructor(
         address _kyberDAO,
+        address _kyberFeeHandler,
         uint256 _epochNotice,
         uint256 _delegationFee
     ) public {
         require(_kyberDAO != address(0), "ctor: kyberDAO is missing");
+        require(
+            _kyberFeeHandler != address(0),
+            "ctor: kyberFeeHandler is missing"
+        );
         require(
             _epochNotice >= MINIMUM_EPOCH_NOTICE,
             "ctor: Epoch Notice too low"
@@ -97,7 +103,7 @@ contract KyberPoolMaster is Ownable {
 
         kncToken = IERC20(kyberDAO.kncToken());
         kyberStaking = IKyberStaking(kyberDAO.staking());
-        kyberFeeHandler = IExtendedKyberFeeHandler(kyberDAO.feeHandler());
+        kyberFeeHandler = IExtendedKyberFeeHandler(_kyberFeeHandler);
 
         epochNotice = _epochNotice;
 
@@ -306,7 +312,7 @@ contract KyberPoolMaster is Ownable {
 
         uint256 initialBalance = address(this).balance;
 
-        kyberDAO.claimReward(address(this), epoch);
+        kyberFeeHandler.claimStakerReward(address(this), epoch);
 
         uint256 totalRewards = address(this).balance.sub(initialBalance);
 
