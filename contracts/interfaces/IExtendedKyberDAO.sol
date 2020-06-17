@@ -1,14 +1,9 @@
 pragma solidity 0.6.6;
 
-import "./IKyberDAO.sol";
+import "./IKyberDao.sol";
 
 
-interface IExtendedKyberDAO is IKyberDAO {
-    function getStakerRewardPercentageInPrecision(address staker, uint256 epoch)
-        external
-        view
-        returns (uint256);
-
+interface IExtendedKyberDao is IKyberDao {
     function kncToken() external view returns (address);
 
     function staking() external view returns (address);

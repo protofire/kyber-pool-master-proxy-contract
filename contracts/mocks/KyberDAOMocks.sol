@@ -1,6 +1,6 @@
 pragma solidity 0.6.6;
 
-contract KyberDAOHandleCurrentEpoch {
+contract KyberDaoHandleCurrentEpoch {
     uint256 internal curEpoch;
 
     address public kncToken;
@@ -24,16 +24,16 @@ contract KyberDAOHandleCurrentEpoch {
     }
 }
 
-contract KyberDAOWithRewardPercentageSetter is KyberDAOHandleCurrentEpoch {
+contract KyberDaoWithRewardPercentageSetter is KyberDaoHandleCurrentEpoch {
     mapping(address => mapping(uint256 => uint256)) public stakerRewardPercentage;
 
     constructor(
         address _knc,
         address _staking
 
-    ) public KyberDAOHandleCurrentEpoch(_knc, _staking) {}
+    ) public KyberDaoHandleCurrentEpoch(_knc, _staking) {}
 
-    function getStakerRewardPercentageInPrecision(address staker, uint256 epoch)
+    function getPastEpochRewardPercentageInPrecision(address staker, uint256 epoch)
         public
         view
         returns (uint256)
@@ -50,13 +50,13 @@ contract KyberDAOWithRewardPercentageSetter is KyberDAOHandleCurrentEpoch {
     }
 }
 
-contract KyberDAOVote is KyberDAOWithRewardPercentageSetter {
+contract KyberDaoVote is KyberDaoWithRewardPercentageSetter {
     event Voted(address indexed staker, uint indexed epoch, uint indexed campaignID, uint option);
 
     constructor(
         address _knc,
         address _staking
-    ) public KyberDAOWithRewardPercentageSetter(_knc, _staking) {
+    ) public KyberDaoWithRewardPercentageSetter(_knc, _staking) {
     }
 
     function vote(uint256 campaignID, uint256 option) external {

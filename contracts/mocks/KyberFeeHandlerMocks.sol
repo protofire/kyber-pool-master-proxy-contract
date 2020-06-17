@@ -1,18 +1,18 @@
 pragma solidity 0.6.6;
 
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "./KyberDAOMocks.sol";
+import "./KyberDaoMocks.sol";
 
 contract KyberFeeHandlerWithRewardPerEposhSetter {
     using SafeMath for uint256;
 
-    KyberDAOVote public kyberDao;
+    KyberDaoVote public kyberDao;
 
     uint256 internal constant PRECISION = (10**18);
     mapping(uint256 => uint256) public rewardsPerEpoch;
 
     constructor(address _kyberDao) public {
-        kyberDao = KyberDAOVote(_kyberDao);
+        kyberDao = KyberDaoVote(_kyberDao);
     }
 
     function setRewardsPerEpoch(uint256 epoch, uint256 rewards) public {
@@ -29,7 +29,7 @@ contract KyberFeeHandlerWithClaimStakerReward is KyberFeeHandlerWithRewardPerEpo
         address staker,
         uint256 epoch
     ) external returns (bool) {
-        uint256 percentageInPrecision = kyberDao.getStakerRewardPercentageInPrecision(staker, epoch);
+        uint256 percentageInPrecision = kyberDao.getPastEpochRewardPercentageInPrecision(staker, epoch);
         uint256 amount = rewardsPerEpoch[epoch].mul(percentageInPrecision).div(PRECISION);
 
         emit Log('Fee handler', staker, percentageInPrecision, epoch, amount);

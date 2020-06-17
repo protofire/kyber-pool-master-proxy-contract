@@ -1,5 +1,5 @@
 const KyberPoolMaster = artifacts.require('KyberPoolMaster');
-const KyberDAO = artifacts.require('KyberDAOHandleCurrentEpoch');
+const KyberDao = artifacts.require('KyberDaoHandleCurrentEpoch');
 const KyberFeeHandler = artifacts.require(
   'KyberFeeHandlerWithClaimStakerReward'
 );
@@ -27,10 +27,10 @@ contract('KyberPoolMaster deployment', async (accounts) => {
   });
 
   describe('deployment', () => {
-    it('should not allow to deploy a KyberPoolMaster zero address kyberDAO', async () => {
+    it('should not allow to deploy a KyberPoolMaster zero address kyberDao', async () => {
       await expectRevert(
         KyberPoolMaster.new(ZERO_ADDRESS, ZERO_ADDRESS, 0, 0),
-        'ctor: kyberDAO is missing'
+        'ctor: kyberDao is missing'
       );
     });
 
@@ -61,12 +61,12 @@ contract('KyberPoolMaster deployment', async (accounts) => {
     });
 
     it('should set the right parameters', async () => {
-      const kyberDAO = await KyberDAO.new(NO_ZERO_ADDRESS, NO_ZERO_ADDRESS);
+      const kyberDao = await KyberDao.new(NO_ZERO_ADDRESS, NO_ZERO_ADDRESS);
 
-      const kyberFeeHandler = await KyberFeeHandler.new(kyberDAO.address);
+      const kyberFeeHandler = await KyberFeeHandler.new(kyberDao.address);
 
       kyberPoolMaster = await KyberPoolMaster.new(
-        kyberDAO.address,
+        kyberDao.address,
         kyberFeeHandler.address,
         2,
         1,
@@ -78,8 +78,8 @@ contract('KyberPoolMaster deployment', async (accounts) => {
       const kncTokenAddress = await kyberPoolMaster.kncToken();
       expect(kncTokenAddress).to.equal(NO_ZERO_ADDRESS);
 
-      const kyberDAOAddress = await kyberPoolMaster.kyberDAO();
-      expect(kyberDAOAddress).to.equal(kyberDAO.address);
+      const kyberDaoAddress = await kyberPoolMaster.kyberDao();
+      expect(kyberDaoAddress).to.equal(kyberDao.address);
 
       const kyberStakingAddress = await kyberPoolMaster.kyberStaking();
       expect(kyberStakingAddress).to.equal(NO_ZERO_ADDRESS);
@@ -116,12 +116,12 @@ contract('KyberPoolMaster deployment', async (accounts) => {
 
   describe('ownership', () => {
     before('one time init', async () => {
-      const kyberDAO = await KyberDAO.new(NO_ZERO_ADDRESS, NO_ZERO_ADDRESS);
+      const kyberDao = await KyberDao.new(NO_ZERO_ADDRESS, NO_ZERO_ADDRESS);
 
-      const kyberFeeHandler = await KyberFeeHandler.new(kyberDAO.address);
+      const kyberFeeHandler = await KyberFeeHandler.new(kyberDao.address);
 
       kyberPoolMaster = await KyberPoolMaster.new(
-        kyberDAO.address,
+        kyberDao.address,
         kyberFeeHandler.address,
         2,
         1,
