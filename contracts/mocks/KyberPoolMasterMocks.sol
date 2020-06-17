@@ -5,14 +5,16 @@ import "../KyberPoolMaster.sol";
 
 contract KyberPoolMasterWithSetters is KyberPoolMaster {
     constructor(
-        address _kyberDAO,
+        address _kyberDao,
+        address _kyberFeeHandler,
         uint256 _epochNotice,
         uint256 _delegationFee
     )
         public
         payable
         KyberPoolMaster(
-            _kyberDAO,
+            _kyberDao,
+            _kyberFeeHandler,
             _epochNotice,
             _delegationFee
         )

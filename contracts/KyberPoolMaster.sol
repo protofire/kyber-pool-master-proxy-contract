@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
 
-import "./interfaces/IExtendedKyberDAO.sol";
+import "./interfaces/IExtendedKyberDao.sol";
 import "./interfaces/IExtendedKyberFeeHandler.sol";
 import "./interfaces/IKyberStaking.sol";
 
@@ -51,7 +51,7 @@ contract KyberPoolMaster is Ownable {
     DFeeData[] public delegationFees;
 
     IERC20 public kncToken;
-    IExtendedKyberDAO public kyberDAO;
+    IExtendedKyberDao public kyberDao;
     IKyberStaking public kyberStaking;
     IExtendedKyberFeeHandler public kyberFeeHandler;
 
@@ -74,16 +74,22 @@ contract KyberPoolMaster is Ownable {
 
     /**
      * @notice Address deploying this contract should be able to receive ETH, owner can be changed using transferOwnership method
-     * @param _kyberDAO KyberDAO contract address
+     * @param _kyberDao KyberDao contract address
+     * @param _kyberFeeHandler KyberFeeHandler contract address
      * @param _epochNotice Number of epochs after which a change on deledatioFee is will be applied
      * @param _delegationFee Fee charged by poolMasters to poolMembers for services - Denominated in 1e4 units - 100 = 1%
      */
     constructor(
-        address _kyberDAO,
+        address _kyberDao,
+        address _kyberFeeHandler,
         uint256 _epochNotice,
         uint256 _delegationFee
     ) public {
-        require(_kyberDAO != address(0), "ctor: kyberDAO is missing");
+        require(_kyberDao != address(0), "ctor: kyberDao is missing");
+        require(
+            _kyberFeeHandler != address(0),
+            "ctor: kyberFeeHandler is missing"
+        );
         require(
             _epochNotice >= MINIMUM_EPOCH_NOTICE,
             "ctor: Epoch Notice too low"
@@ -93,15 +99,15 @@ contract KyberPoolMaster is Ownable {
             "ctor: Delegation Fee greater than 100%"
         );
 
-        kyberDAO = IExtendedKyberDAO(_kyberDAO);
+        kyberDao = IExtendedKyberDao(_kyberDao);
 
-        kncToken = IERC20(kyberDAO.kncToken());
-        kyberStaking = IKyberStaking(kyberDAO.staking());
-        kyberFeeHandler = IExtendedKyberFeeHandler(kyberDAO.feeHandler());
+        kncToken = IERC20(kyberDao.kncToken());
+        kyberStaking = IKyberStaking(kyberDao.staking());
+        kyberFeeHandler = IExtendedKyberFeeHandler(_kyberFeeHandler);
 
         epochNotice = _epochNotice;
 
-        uint256 currEpoch = kyberDAO.getCurrentEpochNumber();
+        uint256 currEpoch = kyberDao.getCurrentEpochNumber();
 
         delegationFees.push(DFeeData(currEpoch, _delegationFee, true));
 
@@ -155,7 +161,7 @@ contract KyberPoolMaster is Ownable {
      * @param option id of options to vote for
      */
     function vote(uint256 campaignID, uint256 option) external onlyOwner {
-        kyberDAO.vote(campaignID, option);
+        kyberDao.vote(campaignID, option);
     }
 
     /**
@@ -168,7 +174,7 @@ contract KyberPoolMaster is Ownable {
             "commitNewFee: Delegation Fee greater than 100%"
         );
 
-        uint256 curEpoch = kyberDAO.getCurrentEpochNumber();
+        uint256 curEpoch = kyberDao.getCurrentEpochNumber();
         uint256 fromEpoch = curEpoch.add(epochNotice);
 
         DFeeData storage lastFee = delegationFees[delegationFees.length - 1];
@@ -191,7 +197,7 @@ contract KyberPoolMaster is Ownable {
      */
     function applyPendingFee() public {
         DFeeData storage lastFee = delegationFees[delegationFees.length - 1];
-        uint256 curEpoch = kyberDAO.getCurrentEpochNumber();
+        uint256 curEpoch = kyberDao.getCurrentEpochNumber();
 
         if (lastFee.fromEpoch <= curEpoch && !lastFee.applied) {
             applyFee(lastFee);
@@ -259,7 +265,7 @@ contract KyberPoolMaster is Ownable {
             bool applied
         )
     {
-        uint256 curEpoch = kyberDAO.getCurrentEpochNumber();
+        uint256 curEpoch = kyberDao.getCurrentEpochNumber();
         return getEpochDFeeData(curEpoch);
     }
 
@@ -275,10 +281,8 @@ contract KyberPoolMaster is Ownable {
             return 0;
         }
 
-        uint256 perInPrecision = kyberDAO.getStakerRewardPercentageInPrecision(
-            address(this),
-            epoch
-        );
+        uint256 perInPrecision = kyberDao
+            .getPastEpochRewardPercentageInPrecision(address(this), epoch);
         if (perInPrecision == 0) {
             return 0;
         }
@@ -306,7 +310,7 @@ contract KyberPoolMaster is Ownable {
 
         uint256 initialBalance = address(this).balance;
 
-        kyberDAO.claimReward(address(this), epoch);
+        kyberFeeHandler.claimStakerReward(address(this), epoch);
 
         uint256 totalRewards = address(this).balance.sub(initialBalance);
 

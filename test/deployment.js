@@ -1,5 +1,8 @@
 const KyberPoolMaster = artifacts.require('KyberPoolMaster');
-const KyberDAO = artifacts.require('KyberDAOHandleCurrentEpoch');
+const KyberDao = artifacts.require('KyberDaoHandleCurrentEpoch');
+const KyberFeeHandler = artifacts.require(
+  'KyberFeeHandlerWithClaimStakerReward'
+);
 const TestToken = artifacts.require('Token.sol');
 
 const {expect} = require('chai');
@@ -24,48 +27,65 @@ contract('KyberPoolMaster deployment', async (accounts) => {
   });
 
   describe('deployment', () => {
-    it('should not allow to deploy a KyberPoolMaster zero address kyberDAO', async () => {
+    it('should not allow to deploy a KyberPoolMaster zero address kyberDao', async () => {
       await expectRevert(
-        KyberPoolMaster.new(ZERO_ADDRESS, 0, 0),
-        'ctor: kyberDAO is missing'
+        KyberPoolMaster.new(ZERO_ADDRESS, ZERO_ADDRESS, 0, 0),
+        'ctor: kyberDao is missing'
+      );
+    });
+
+    it('should not allow to deploy a KyberPoolMaster zero address kyberFeeHandler', async () => {
+      await expectRevert(
+        KyberPoolMaster.new(NO_ZERO_ADDRESS, ZERO_ADDRESS, 0, 0),
+        'ctor: kyberFeeHandler is missing'
       );
     });
 
     it('should not allow to deploy a KyberPoolMaster with epochNotice lower than the minimum', async () => {
       await expectRevert(
-        KyberPoolMaster.new(NO_ZERO_ADDRESS, 0, 0),
+        KyberPoolMaster.new(NO_ZERO_ADDRESS, NO_ZERO_ADDRESS, 0, 0),
         'ctor: Epoch Notice too low.'
       );
     });
 
     it('should not allow to deploy a KyberPoolMaster with delegationFee greater than 100%', async () => {
       await expectRevert(
-        KyberPoolMaster.new(NO_ZERO_ADDRESS, 1, MAX_DELEGATION_FEE + 1),
+        KyberPoolMaster.new(
+          NO_ZERO_ADDRESS,
+          NO_ZERO_ADDRESS,
+          1,
+          MAX_DELEGATION_FEE + 1
+        ),
         'ctor: Delegation Fee greater than 100%'
       );
     });
 
     it('should set the right parameters', async () => {
-      const kyberDAO = await KyberDAO.new(
-        NO_ZERO_ADDRESS,
-        NO_ZERO_ADDRESS,
-        NO_ZERO_ADDRESS
+      const kyberDao = await KyberDao.new(NO_ZERO_ADDRESS, NO_ZERO_ADDRESS);
+
+      const kyberFeeHandler = await KyberFeeHandler.new(kyberDao.address);
+
+      kyberPoolMaster = await KyberPoolMaster.new(
+        kyberDao.address,
+        kyberFeeHandler.address,
+        2,
+        1,
+        {
+          from: poolMasterOwner,
+        }
       );
-      kyberPoolMaster = await KyberPoolMaster.new(kyberDAO.address, 2, 1, {
-        from: poolMasterOwner,
-      });
 
       const kncTokenAddress = await kyberPoolMaster.kncToken();
       expect(kncTokenAddress).to.equal(NO_ZERO_ADDRESS);
 
-      const kyberDAOAddress = await kyberPoolMaster.kyberDAO();
-      expect(kyberDAOAddress).to.equal(kyberDAO.address);
+      const kyberDaoAddress = await kyberPoolMaster.kyberDao();
+      expect(kyberDaoAddress).to.equal(kyberDao.address);
 
       const kyberStakingAddress = await kyberPoolMaster.kyberStaking();
       expect(kyberStakingAddress).to.equal(NO_ZERO_ADDRESS);
 
       const kyberFeeHandlerAddress = await kyberPoolMaster.kyberFeeHandler();
-      expect(kyberFeeHandlerAddress).to.equal(NO_ZERO_ADDRESS);
+      expect(kyberFeeHandlerAddress).to.equal(kyberFeeHandler.address);
 
       const epochNotice = await kyberPoolMaster.epochNotice();
       expect(epochNotice.toString()).to.equal('2');
@@ -96,14 +116,19 @@ contract('KyberPoolMaster deployment', async (accounts) => {
 
   describe('ownership', () => {
     before('one time init', async () => {
-      const kyberDAO = await KyberDAO.new(
-        NO_ZERO_ADDRESS,
-        NO_ZERO_ADDRESS,
-        NO_ZERO_ADDRESS
+      const kyberDao = await KyberDao.new(NO_ZERO_ADDRESS, NO_ZERO_ADDRESS);
+
+      const kyberFeeHandler = await KyberFeeHandler.new(kyberDao.address);
+
+      kyberPoolMaster = await KyberPoolMaster.new(
+        kyberDao.address,
+        kyberFeeHandler.address,
+        2,
+        1,
+        {
+          from: poolMasterOwner,
+        }
       );
-      kyberPoolMaster = await KyberPoolMaster.new(kyberDAO.address, 2, 1, {
-        from: poolMasterOwner,
-      });
     });
 
     it('should have the right owner', async () => {

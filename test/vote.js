@@ -2,7 +2,7 @@ const KyberPoolMaster = artifacts.require('KyberPoolMaster');
 
 // Mocks
 const TestToken = artifacts.require('Token.sol');
-const KyberDAOVote = artifacts.require('KyberDAOVote');
+const KyberDaoVote = artifacts.require('KyberDaoVote');
 const KyberStakingWithgetStakerDataForEpoch = artifacts.require(
   'KyberStakingWithgetStakerDataForEpoch'
 );
@@ -19,7 +19,7 @@ let notOwner;
 let poolMaster;
 let kncToken;
 let kyberStaking;
-let kyberDAO;
+let kyberDao;
 let mike;
 
 contract('KyberPoolMaster vote', async (accounts) => {
@@ -35,16 +35,22 @@ contract('KyberPoolMaster vote', async (accounts) => {
     await kncToken.transfer(mike, mulPrecision(1000000));
 
     kyberStaking = await KyberStakingWithgetStakerDataForEpoch.new();
-    kyberFeeHandler = await KyberFeeHandlerWithClaimStakerReward.new();
-    kyberDAO = await KyberDAOVote.new(
-      NO_ZERO_ADDRESS,
-      kyberStaking.address,
-      kyberFeeHandler.address
+
+    kyberDao = await KyberDaoVote.new(NO_ZERO_ADDRESS, kyberStaking.address);
+
+    kyberFeeHandler = await KyberFeeHandlerWithClaimStakerReward.new(
+      kyberDao.address
     );
 
-    poolMaster = await KyberPoolMaster.new(kyberDAO.address, 2, 1, {
-      from: poolMasterOwner,
-    });
+    poolMaster = await KyberPoolMaster.new(
+      kyberDao.address,
+      kyberFeeHandler.address,
+      2,
+      1,
+      {
+        from: poolMasterOwner,
+      }
+    );
 
     await kncToken.approve(poolMaster.address, mulPrecision(100), {
       from: poolMasterOwner,
@@ -53,13 +59,13 @@ contract('KyberPoolMaster vote', async (accounts) => {
 
   describe('#Vote Tests', () => {
     it('should be able to vote', async function () {
-      const currentEpoch = await kyberDAO.getCurrentEpochNumber();
+      const currentEpoch = await kyberDao.getCurrentEpochNumber();
 
       const {tx} = await poolMaster.vote(1, 1, {
         from: poolMasterOwner,
       });
 
-      await expectEvent.inTransaction(tx, kyberDAO, 'Voted', {
+      await expectEvent.inTransaction(tx, kyberDao, 'Voted', {
         epoch: currentEpoch.toString(),
         staker: poolMaster.address,
         campaignID: '1',

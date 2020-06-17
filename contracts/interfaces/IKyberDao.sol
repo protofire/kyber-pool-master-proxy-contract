@@ -3,20 +3,13 @@ pragma solidity 0.6.6;
 import "./IEpochUtils.sol";
 
 
-interface IKyberDAO is IEpochUtils {
+interface IKyberDao is IEpochUtils {
     event Voted(
         address indexed staker,
         uint256 indexed epoch,
         uint256 indexed campaignID,
         uint256 option
     );
-    event RewardClaimed(
-        address indexed staker,
-        uint256 indexed epoch,
-        uint256 percentInPrecision
-    );
-
-    function claimReward(address staker, uint256 epoch) external;
 
     function getLatestNetworkFeeDataWithCache()
         external
@@ -45,4 +38,23 @@ interface IKyberDAO is IEpochUtils {
         external
         view
         returns (bool);
+
+    /**
+     * @dev  return staker's reward percentage in precision for a past epoch only
+     *       fee handler should call this function when a staker wants to claim reward
+     *       return 0 if staker has no votes or stakes
+     */
+    function getPastEpochRewardPercentageInPrecision(
+        address staker,
+        uint256 epoch
+    ) external view returns (uint256);
+
+    /**
+     * @dev  return staker's reward percentage in precision for the current epoch
+     *       reward percentage is not finalized until the current epoch is ended
+     */
+    function getCurrentEpochRewardPercentageInPrecision(address staker)
+        external
+        view
+        returns (uint256);
 }

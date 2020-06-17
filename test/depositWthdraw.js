@@ -1,5 +1,5 @@
 const KyberPoolMaster = artifacts.require('KyberPoolMaster');
-const KyberDAO = artifacts.require('KyberDAOHandleCurrentEpoch');
+const KyberDao = artifacts.require('KyberDaoHandleCurrentEpoch');
 
 // Mocks
 const TestToken = artifacts.require('Token.sol');
@@ -23,7 +23,7 @@ let startBlock;
 let blockTime;
 let currentChainTime;
 let kncToken;
-let kyberDAO;
+let kyberDao;
 let stakingContract;
 let poolMasterOwner;
 let notOwner;
@@ -58,15 +58,17 @@ contract(
         daoSetter
       );
 
-      kyberDAO = await KyberDAO.new(
-        kncToken.address,
-        stakingContract.address,
-        NO_ZERO_ADDRESS
-      );
+      kyberDao = await KyberDao.new(kncToken.address, stakingContract.address);
 
-      poolMaster = await KyberPoolMaster.new(kyberDAO.address, 2, 1, {
-        from: poolMasterOwner,
-      });
+      poolMaster = await KyberPoolMaster.new(
+        kyberDao.address,
+        NO_ZERO_ADDRESS,
+        2,
+        1,
+        {
+          from: poolMasterOwner,
+        }
+      );
     });
 
     const blockToTimestamp = function (block) {

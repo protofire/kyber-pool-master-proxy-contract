@@ -8,7 +8,7 @@ Contract that allows pool masters to let pool members claim their designated rew
 For pool operators who prefer a trustless mechanism for reward distribution, they can choose to deploy this smart contract, that will store the rewards in the proxy contract and allow their pool members to claim the rewards directly from the proxy contract.
 
 #### Motivation
-The current KyberDAO delegation model allows for non-custodial delegation of KNC, but requires pool masters to have a mechanism for storing, tracking and distributing the rewards for members.
+The current KyberDao delegation model allows for non-custodial delegation of KNC, but requires pool masters to have a mechanism for storing, tracking and distributing the rewards for members.
 
 #### Functionality
 - Store the rewards trustlessly in the smart contract
@@ -46,8 +46,8 @@ This is used for noticing that a new fee has been applied.
 - `INFURA_PROJECT_ID` your Infura project id
 - `DEPLOYMENT_ACCOUNT_PK` your deploying address private key
 - `GAS_PRICE` gas price to be used, denominated in wei
-- `KYBER_DAO_ADDRESS` KyberDAO address
-  - https://github.com/KyberNetwork/developer-portal/blob/stakingSection/testnet.md
+- `KYBER_DAO_ADDRESS` [KyberDao address](https://github.com/KyberNetwork/developer-portal/blob/stakingSection/testnet.md#kyberdao)
+- `KYBER_FEE_HANDLER_ADDRESS` [KyberFeeHandler address](https://github.com/KyberNetwork/developer-portal/blob/stakingSection/testnet.md#kyberfeehandler)
 - `EPOCH_NOTICE` Delegation fee change notice. Integer parameter, for example EPOCH_NOTICE=2, then on the epoch #10 if you change the delegation fee (commitNewFee), that new fee starts on epoch #12
 - `INITIAL_DELEGATION_FEE` Initial delegation fee, denominated in 1e4 units - 100 = 1%
 
@@ -69,7 +69,7 @@ $ npm run deploy:NETWORK
 - [Delegating Overview And Example](https://github.com/KyberNetwork/developer-portal/blob/stakingSection/delegating-example.md)
 - [Kyber Team as DAO Maintainer](https://github.com/KyberNetwork/developer-portal/blob/stakingSection/kyber-team-maintainer.md)
 - [Staking and Delegating APIs](https://github.com/KyberNetwork/developer-portal/blob/stakingSection/staking-api.md)
-- [KyberDAO FAQs](https://github.com/KyberNetwork/developer-portal/blob/stakingSection/faqs.md)
+- [KyberDao FAQs](https://github.com/KyberNetwork/developer-portal/blob/stakingSection/faqs.md)
 
 ## Develop
 

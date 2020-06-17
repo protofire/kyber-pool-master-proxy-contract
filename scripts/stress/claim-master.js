@@ -1,6 +1,8 @@
 const KyberPoolMaster = artifacts.require('KyberPoolMasterWithSetters');
 
-const KyberDAOClaimReward = artifacts.require('KyberDAOClaimReward');
+const KyberDaoWithRewardPercentageSetter = artifacts.require(
+  'KyberDaoWithRewardPercentageSetter'
+);
 
 const KyberFeeHandlerWithClaimStakerReward = artifacts.require(
   'KyberFeeHandlerWithClaimStakerReward'
@@ -16,7 +18,7 @@ const Reverter = require('../../test/utils/reverter');
 const {NO_ZERO_ADDRESS} = require('../../test/helper.js');
 
 let kyberPoolMaster;
-let kyberDAO;
+let kyberDao;
 let kyberFeeHandler;
 let poolMasterOwner;
 let mike;
@@ -38,7 +40,7 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       stakerStake = '0',
       delegatedStake = '1',
     }) => {
-      await kyberDAO.setStakerRewardPercentage(
+      await kyberDao.setStakerRewardPercentage(
         staker,
         epoch,
         stakerRewardPercentage
@@ -57,9 +59,9 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       await kyberPoolMaster.commitNewFee(fee, {
         from: poolMasterOwner,
       });
-      const curEpoch = await kyberDAO.getCurrentEpochNumber();
+      const curEpoch = await kyberDao.getCurrentEpochNumber();
       const nextEpoch = Number(curEpoch) + 2;
-      await kyberDAO.setCurrentEpochNumber(nextEpoch);
+      await kyberDao.setCurrentEpochNumber(nextEpoch);
       await kyberPoolMaster.applyPendingFee({from: poolMasterOwner});
 
       return nextEpoch;
@@ -141,15 +143,22 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       mike = accounts[2];
 
       kyberStaking = await KyberStakingWithgetStakerDataForEpoch.new();
-      kyberFeeHandler = await KyberFeeHandlerWithClaimStakerReward.new();
-      kyberDAO = await KyberDAOClaimReward.new(
+      kyberDao = await KyberDaoWithRewardPercentageSetter.new(
         NO_ZERO_ADDRESS,
-        kyberStaking.address,
-        kyberFeeHandler.address
+        kyberStaking.address
       );
-      kyberPoolMaster = await KyberPoolMaster.new(kyberDAO.address, 2, 1, {
-        from: poolMasterOwner,
-      });
+      kyberFeeHandler = await KyberFeeHandlerWithClaimStakerReward.new(
+        kyberDao.address
+      );
+      kyberPoolMaster = await KyberPoolMaster.new(
+        kyberDao.address,
+        kyberFeeHandler.address,
+        2,
+        1,
+        {
+          from: poolMasterOwner,
+        }
+      );
 
       await Promise.all(
         Array.from({length: 17}, (v, i) =>
