@@ -8,7 +8,9 @@ contract KyberPoolMasterWithSetters is KyberPoolMaster {
         address _kyberDao,
         address _kyberFeeHandler,
         uint256 _epochNotice,
-        uint256 _delegationFee
+        uint256 _delegationFee,
+        address[] memory _kyberFeeHandlers,
+        IERC20[] memory _rewardTokens
     )
         public
         payable
@@ -16,7 +18,9 @@ contract KyberPoolMasterWithSetters is KyberPoolMaster {
             _kyberDao,
             _kyberFeeHandler,
             _epochNotice,
-            _delegationFee
+            _delegationFee,
+            _kyberFeeHandlers,
+            _rewardTokens
         )
     {}
 

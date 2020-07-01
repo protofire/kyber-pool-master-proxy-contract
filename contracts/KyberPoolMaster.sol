@@ -22,6 +22,9 @@ contract KyberPoolMaster is Ownable {
     uint256 internal constant MINIMUM_EPOCH_NOTICE = 1;
     uint256 internal constant MAX_DELEGATION_FEE = 10000;
     uint256 internal constant PRECISION = (10**18);
+    IERC20 internal constant ETH_TOKEN_ADDRESS = IERC20(
+        0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE
+    );
 
     // Number of epochs after which a change on delegationFee is will be applied
     uint256 public epochNotice;
@@ -55,6 +58,14 @@ contract KyberPoolMaster is Ownable {
     IKyberStaking public kyberStaking;
     IExtendedKyberFeeHandler public kyberFeeHandler;
 
+    struct FeeHandlerData {
+        address feeHandler;
+        address rewardToken;
+    }
+
+    address[] public feeHandlersList;
+    mapping(address => IERC20) public rewardTokenByFeeHandle;
+
     /*** Events ***/
     event CommitNewFees(uint256 deadline, uint256 feeRate);
     event NewFees(uint256 fromEpoch, uint256 feeRate);
@@ -72,6 +83,10 @@ contract KyberPoolMaster is Ownable {
         uint256 poolMasterShare
     );
 
+    event AddFeeHandler(address indexed feeHandler, IERC20 indexed rewardToken);
+
+    event RemoveFeeHandler(address indexed feeHandler);
+
     /**
      * @notice Address deploying this contract should be able to receive ETH, owner can be changed using transferOwnership method
      * @param _kyberDao KyberDao contract address
@@ -81,9 +96,11 @@ contract KyberPoolMaster is Ownable {
      */
     constructor(
         address _kyberDao,
-        address _kyberFeeHandler,
+        address _kyberFeeHandler, // TODO - remove
         uint256 _epochNotice,
-        uint256 _delegationFee
+        uint256 _delegationFee,
+        address[] memory _kyberFeeHandlers,
+        IERC20[] memory _rewardTokens
     ) public {
         require(_kyberDao != address(0), "ctor: kyberDao is missing");
         require(
@@ -98,6 +115,14 @@ contract KyberPoolMaster is Ownable {
             _delegationFee <= MAX_DELEGATION_FEE,
             "ctor: Delegation Fee greater than 100%"
         );
+        require(
+            _kyberFeeHandlers.length > 0,
+            "ctor: at least one _kyberFeeHandlers required"
+        );
+        require(
+            _kyberFeeHandlers.length == _rewardTokens.length,
+            "ctor: _kyberFeeHandlers and _rewardTokens uneven"
+        );
 
         kyberDao = IExtendedKyberDao(_kyberDao);
 
@@ -111,8 +136,78 @@ contract KyberPoolMaster is Ownable {
 
         delegationFees.push(DFeeData(currEpoch, _delegationFee, true));
 
+        for (uint256 i = 0; i < _kyberFeeHandlers.length; i++) {
+            require(
+                _kyberFeeHandlers[i] != address(0),
+                "ctor: feeHandler is missing"
+            );
+            require(
+                rewardTokenByFeeHandle[_kyberFeeHandlers[i]] ==
+                    IERC20(address(0)),
+                "ctor: repeated feeHandler"
+            );
+
+            feeHandlersList.push(_kyberFeeHandlers[i]);
+            rewardTokenByFeeHandle[_kyberFeeHandlers[i]] = _rewardTokens[i] ==
+                IERC20(address(0))
+                ? ETH_TOKEN_ADDRESS
+                : _rewardTokens[i];
+        }
+
         emit CommitNewFees(currEpoch, _delegationFee);
         emit NewFees(currEpoch, _delegationFee);
+    }
+
+    /**
+     * @dev adds a new FeeHandler
+     * @param _feeHandler FeeHandler address
+     * @param _rewardToken Rewards Token address
+     */
+    function addFeeHandler(address _feeHandler, IERC20 _rewardToken)
+        external
+        onlyOwner
+    {
+        require(
+            _feeHandler != address(0),
+            "addFeeHandler: _feeHandler is missing"
+        );
+        require(
+            rewardTokenByFeeHandle[_feeHandler] == IERC20(address(0)),
+            "addFeeHandler: already added"
+        );
+
+        feeHandlersList.push(_feeHandler);
+        rewardTokenByFeeHandle[_feeHandler] = _rewardToken == IERC20(address(0))
+            ? ETH_TOKEN_ADDRESS
+            : _rewardToken;
+
+        emit AddFeeHandler(_feeHandler, rewardTokenByFeeHandle[_feeHandler]);
+    }
+
+    /**
+     * @dev removes a FeeHandler
+     * @param _feeHandler FeeHandler address
+     */
+    function removeFeeHandler(address _feeHandler) external onlyOwner {
+        require(
+            rewardTokenByFeeHandle[_feeHandler] != IERC20(address(0)),
+            "removeFeeHandler: not added"
+        );
+
+        if (feeHandlersList[feeHandlersList.length - 1] != _feeHandler) {
+            for (uint256 i = 0; i < feeHandlersList.length; i++) {
+                if (feeHandlersList[i] == _feeHandler) {
+                    feeHandlersList[i] = feeHandlersList[feeHandlersList
+                        .length - 1];
+                    break;
+                }
+            }
+        }
+
+        feeHandlersList.pop();
+        delete rewardTokenByFeeHandle[_feeHandler];
+
+        emit RemoveFeeHandler(_feeHandler);
     }
 
     /**
@@ -452,6 +547,13 @@ contract KyberPoolMaster is Ownable {
      */
     function delegationFeesLength() public view returns (uint256) {
         return delegationFees.length;
+    }
+
+    /**
+     * @dev Queries the number of elements in feeHandlersList
+     */
+    function feeHandlersListLength() public view returns (uint256) {
+        return feeHandlersList.length;
     }
 
     /**

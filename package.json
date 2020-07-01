@@ -7,7 +7,7 @@
     "build": "npm run compile:contracts",
     "pretest": "NODE_ENV=test npm run build",
     "test:stress": "NODE_ENV=test scripts/test.sh",
-    "test": "NODE_ENV=test truffle test",
+    "test": "NODE_ENV=test truffle test /Users/lisandro/Protofire/KyberNetwork/kyber-pool-master-proxy-contract/test/feeHandlers.js",
     "coverage": "NODE_ENV=test truffle run coverage",
     "lint": "npm run lint:js && npm run lint:sol",
     "lint:js": "eslint .",
