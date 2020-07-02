@@ -33,7 +33,10 @@ contract KyberPoolMaster is Ownable {
     mapping(uint256 => mapping(address => bool)) public claimedDelegateReward;
 
     // Mapping of if poolMaster has claimed reward for an epoch for the pool
-    mapping(uint256 => bool) public claimedPoolReward;
+    mapping(uint256 => bool) public claimedPoolReward; //TODO - REMOVE onece multi feeHandler is done
+
+    // Mapping of if the pool has claimed reward for an epoch in a feeHandler
+    mapping(uint256 => mapping(address => bool)) public claimedEpochFeeHandlerPoolReward;
 
     // Amount of rewards owed to poolMembers for an epoch
     struct Reward {
@@ -58,13 +61,10 @@ contract KyberPoolMaster is Ownable {
     IKyberStaking public kyberStaking;
     IExtendedKyberFeeHandler public kyberFeeHandler;
 
-    struct FeeHandlerData {
-        address feeHandler;
-        address rewardToken;
-    }
-
     address[] public feeHandlersList;
     mapping(address => IERC20) public rewardTokenByFeeHandle;
+
+    uint256 public firstEpoch;
 
     /*** Events ***/
     event CommitNewFees(uint256 deadline, uint256 feeRate);
@@ -93,10 +93,11 @@ contract KyberPoolMaster is Ownable {
      * @param _kyberFeeHandler KyberFeeHandler contract address
      * @param _epochNotice Number of epochs after which a change on deledatioFee is will be applied
      * @param _delegationFee Fee charged by poolMasters to poolMembers for services - Denominated in 1e4 units - 100 = 1%
+     * @param _delegationFee TODO - Add doc
      */
     constructor(
         address _kyberDao,
-        address _kyberFeeHandler, // TODO - remove
+        address _kyberFeeHandler, //TODO - REMOVE onece multi feeHandler is done
         uint256 _epochNotice,
         uint256 _delegationFee,
         address[] memory _kyberFeeHandlers,
@@ -132,9 +133,9 @@ contract KyberPoolMaster is Ownable {
 
         epochNotice = _epochNotice;
 
-        uint256 currEpoch = kyberDao.getCurrentEpochNumber();
+        firstEpoch = kyberDao.getCurrentEpochNumber();
 
-        delegationFees.push(DFeeData(currEpoch, _delegationFee, true));
+        delegationFees.push(DFeeData(firstEpoch, _delegationFee, true));
 
         for (uint256 i = 0; i < _kyberFeeHandlers.length; i++) {
             require(
@@ -154,8 +155,8 @@ contract KyberPoolMaster is Ownable {
                 : _rewardTokens[i];
         }
 
-        emit CommitNewFees(currEpoch, _delegationFee);
-        emit NewFees(currEpoch, _delegationFee);
+        emit CommitNewFees(firstEpoch, _delegationFee);
+        emit NewFees(firstEpoch, _delegationFee);
     }
 
     /**
@@ -364,7 +365,7 @@ contract KyberPoolMaster is Ownable {
         return getEpochDFeeData(curEpoch);
     }
 
-    /**
+    /** // TODO - REMOVE onece multi feeHandler is done
      * @dev  Queries the amount of unclaimed rewards for the pool
      *       return 0 if PoolMaster has calledRewardMaster
      *       return 0 if staker's reward percentage in precision for the epoch is 0
@@ -390,6 +391,74 @@ contract KyberPoolMaster is Ownable {
         uint256 unclaimed = rewardsPerEpoch.mul(perInPrecision).div(PRECISION);
 
         return unclaimed;
+    }
+
+    /**
+     * @dev  Queries the amount of unclaimed rewards for the pool in a given epoch and feeHandler
+     *       return 0 if PoolMaster has calledRewardMaster
+     *       return 0 if staker's reward percentage in precision for the epoch is 0
+     *       return 0 if total reward for the epoch is 0
+     * @param _epoch for which epoch is querying unclaimed reward
+     * @param _feeHandler FeeHandler address
+     */
+    function getEpochFeeHandlerUnclaimedRewards(
+        uint256 _epoch,
+        IExtendedKyberFeeHandler _feeHandler
+    ) public view returns (uint256) {
+        if (claimedEpochFeeHandlerPoolReward[_epoch][address(_feeHandler)]) {
+            return 0;
+        }
+
+        uint256 perInPrecision = kyberDao
+            .getPastEpochRewardPercentageInPrecision(address(this), _epoch);
+        if (perInPrecision == 0) {
+            return 0;
+        }
+
+        uint256 rewardsPerEpoch = _feeHandler.rewardsPerEpoch(_epoch);
+        if (rewardsPerEpoch == 0) {
+            return 0;
+        }
+
+        uint256 unclaimed = rewardsPerEpoch.mul(perInPrecision).div(PRECISION);
+
+        return unclaimed;
+    }
+
+    /**
+     * @dev  Queries the epochs with at least one feeHandler paying rewards, for the pool
+     */
+    function getAllEpochWithUnclaimedRewards()
+        external
+        view
+        returns (uint256[] memory)
+    {
+        uint256 currentEpoch = kyberDao.getCurrentEpochNumber();
+        uint256 maxEpochNumber = currentEpoch.sub(firstEpoch);
+        uint256[] memory epochsWithRewards = new uint256[](maxEpochNumber);
+        uint256 epochCounter = 0;
+        for (uint256 epoch = firstEpoch; epoch <= currentEpoch; epoch++) {
+            for (uint256 i = 0; i < feeHandlersList.length; i++) {
+                uint256 unclaimed = getEpochFeeHandlerUnclaimedRewards(
+                    epoch,
+                    IExtendedKyberFeeHandler(feeHandlersList[i])
+                );
+
+                if (unclaimed > 0) {
+                    epochsWithRewards[epochCounter] = epoch;
+                    epochCounter++;
+                    // stop querying feeHandlers on the first with rewards for the epoch
+                    break;
+                }
+            }
+        }
+
+        uint256[] memory result = new uint256[](epochCounter);
+        for (uint256 i = 0; i < epochCounter; i++) {
+            result[i] = epochsWithRewards[i];
+        }
+
+        return result;
     }
 
     /**

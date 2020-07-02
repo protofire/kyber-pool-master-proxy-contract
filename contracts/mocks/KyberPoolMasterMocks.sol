@@ -28,6 +28,10 @@ contract KyberPoolMasterWithSetters is KyberPoolMaster {
         claimedPoolReward[epoch] = true;
     }
 
+    function setClaimedEpochFeeHandlerPoolReward(uint256 _epoch, address _feeHandler) public {
+        claimedEpochFeeHandlerPoolReward[_epoch][_feeHandler] = true;
+    }
+
     function setClaimedDelegateReward(uint256 epoch, address member) public {
         claimedDelegateReward[epoch][member] = true;
     }
