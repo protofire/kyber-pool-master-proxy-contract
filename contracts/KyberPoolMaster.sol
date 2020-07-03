@@ -30,7 +30,11 @@ contract KyberPoolMaster is Ownable {
     uint256 public epochNotice;
 
     // Mapping of if staker has claimed reward for Epoch
-    mapping(uint256 => mapping(address => bool)) public claimedDelegateReward;
+    mapping(uint256 => mapping(address => bool)) public claimedDelegateReward; //TODO - REMOVE once multi feeHandler is done
+
+    // Mapping of if staker has claimed reward for Epoch in a feeHandler
+    // epoch -> member -> feeHandler -> true | false
+    mapping(uint256 => mapping(address => mapping(address => bool))) public claimedEpochFeeHandlerDelegateReward;
 
     // Mapping of if poolMaster has claimed reward for an epoch for the pool
     mapping(uint256 => bool) public claimedPoolReward; //TODO - REMOVE once multi feeHandler is done
@@ -43,7 +47,8 @@ contract KyberPoolMaster is Ownable {
         uint256 totalRewards;
         uint256 totalStaked;
     }
-    mapping(uint256 => Reward) public memberRewards;
+    mapping(uint256 => Reward) public memberRewards; //TODO - REMOVE once multi feeHandler is done
+    //epoch -> feeHandler -> reward
     mapping(uint256 => mapping(address => Reward)) public memberRewardsByFeeHandler;
 
     // Fee charged by poolMasters to poolMembers for services
@@ -380,7 +385,7 @@ contract KyberPoolMaster is Ownable {
         return getEpochDFeeData(curEpoch);
     }
 
-    /**
+    /** TODO - RENAME to claimRewardsMaster once multi feeHandler is done
      * @dev  Queries the amount of unclaimed rewards for the pool in a given epoch and feeHandler
      *       return 0 if PoolMaster has calledRewardMaster
      *       return 0 if staker's reward percentage in precision for the epoch is 0
@@ -461,6 +466,7 @@ contract KyberPoolMaster is Ownable {
 
     function findIndex(IERC20[] memory _tokens, IERC20 _token)
         internal
+        pure
         returns (int256)
     {
         int256 index = -1;
@@ -646,6 +652,94 @@ contract KyberPoolMaster is Ownable {
                 rewardForEpoch.totalStaked,
                 rewardForEpoch.totalRewards
             );
+    }
+
+    /**
+     * @dev  Queries the amount of unclaimed rewards for the pool member in a given epoch and feeHandler
+     *       return 0 if PoolMaster has not called claimRewardMaster
+     *       return 0 if PoolMember has previously claimed reward for the epoch
+     *       return 0 if PoolMember has not stake for the epoch
+     *       return 0 if PoolMember has not delegated it stake to this contract for the epoch
+     * @param _poolMember address of pool member
+     * @param _epoch for which epoch the member is querying unclaimed reward
+     * @param _feeHandler FeeHandler address
+     */
+    function getEpochFeeHandlerUnclaimedRewardsMember(
+        address _poolMember,
+        uint256 _epoch,
+        address _feeHandler
+    ) public view returns (uint256) {
+        if (!claimedEpochFeeHandlerPoolReward[_epoch][_feeHandler]) {
+            return 0;
+        }
+
+        if (
+            claimedEpochFeeHandlerDelegateReward[_epoch][_poolMember][_feeHandler]
+        ) {
+            return 0;
+        }
+
+        (uint256 stake, , address representative) = kyberStaking.getStakerData(
+            _poolMember,
+            _epoch
+        );
+
+        if (stake == 0) {
+            return 0;
+        }
+
+        if (representative != address(this)) {
+            return 0;
+        }
+
+
+            Reward memory rewardForEpoch
+         = memberRewardsByFeeHandler[_epoch][_feeHandler];
+
+        return
+            calculateRewardsShare(
+                stake,
+                rewardForEpoch.totalStaked,
+                rewardForEpoch.totalRewards
+            );
+    }
+
+    /**
+     * @dev  Queries the epochs with at least one feeHandler paying rewards, for a the poolMember
+     * @param _poolMember address of pool member
+     */
+    function getAllEpochWithUnclaimedRewardsMember(address _poolMember)
+        external
+        view
+        returns (uint256[] memory)
+    {
+        uint256 currentEpoch = kyberDao.getCurrentEpochNumber();
+        uint256 maxEpochNumber = currentEpoch.sub(firstEpoch);
+        uint256[] memory epochsWithRewards = new uint256[](maxEpochNumber);
+        uint256 epochCounter = 0;
+        for (uint256 epoch = firstEpoch; epoch <= currentEpoch; epoch++) {
+            for (uint256 i = 0; i < feeHandlersList.length; i++) {
+                uint256 unclaimed = getEpochFeeHandlerUnclaimedRewardsMember(
+                    _poolMember,
+                    epoch,
+                    feeHandlersList[i]
+                );
+
+                if (unclaimed > 0) {
+                    epochsWithRewards[epochCounter] = epoch;
+                    epochCounter++;
+                    // stop querying feeHandlers on the first with rewards for the epoch
+                    break;
+                }
+            }
+        }
+
+        uint256[] memory result = new uint256[](epochCounter);
+        for (uint256 i = 0; i < epochCounter; i++) {
+            result[i] = epochsWithRewards[i];
+        }
+
+        return result;
     }
 
     /**
