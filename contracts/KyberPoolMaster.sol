@@ -683,6 +683,7 @@ contract KyberPoolMaster is Ownable {
                         feeHandlersList[i]
                     );
 
+
                         IERC20 rewardToken
                      = rewardTokenByFeeHandle[feeHandlersList[i]];
 
