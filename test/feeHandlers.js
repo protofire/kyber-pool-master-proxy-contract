@@ -44,7 +44,6 @@ contract('KyberPoolMaster FeeHandlers', async (accounts) => {
 
     kyberPoolMaster = await KyberPoolMaster.new(
       kyberDao.address,
-      NO_ZERO_ADDRESS,
       2,
       1,
       [FEE_HANDLER_F],

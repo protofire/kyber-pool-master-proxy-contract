@@ -6,7 +6,6 @@ import "../KyberPoolMaster.sol";
 contract KyberPoolMasterWithSetters is KyberPoolMaster {
     constructor(
         address _kyberDao,
-        address _kyberFeeHandler,
         uint256 _epochNotice,
         uint256 _delegationFee,
         address[] memory _kyberFeeHandlers,
@@ -16,7 +15,6 @@ contract KyberPoolMasterWithSetters is KyberPoolMaster {
         payable
         KyberPoolMaster(
             _kyberDao,
-            _kyberFeeHandler,
             _epochNotice,
             _delegationFee,
             _kyberFeeHandlers,
@@ -24,27 +22,15 @@ contract KyberPoolMasterWithSetters is KyberPoolMaster {
         )
     {}
 
-    function setClaimedPoolReward(uint256 epoch) public {
-        claimedPoolReward[epoch] = true;
+    function setClaimedPoolReward(uint256 _epoch, address _feeHandler) public {
+        claimedPoolReward[_epoch][_feeHandler] = true;
     }
 
-    function setClaimedEpochFeeHandlerPoolReward(uint256 _epoch, address _feeHandler) public {
-        claimedEpochFeeHandlerPoolReward[_epoch][_feeHandler] = true;
+    function setClaimedDelegateReward(uint256 _epoch, address _member, address _feeHandler) public {
+        claimedDelegateReward[_epoch][_member][_feeHandler] = true;
     }
 
-    function setClaimedDelegateReward(uint256 epoch, address member) public {
-        claimedDelegateReward[epoch][member] = true;
-    }
-
-    function setClaimedEpochFeeHandlerDelegateReward(uint256 epoch, address member, address feeHandler) public {
-        claimedEpochFeeHandlerDelegateReward[epoch][member][feeHandler] = true;
-    }
-
-    function setMemberRewards(uint256 epoch, uint256 totalRewards, uint256 totalStaked) public {
-        memberRewards[epoch] = Reward(totalRewards, totalStaked);
-    }
-
-    function setMemberRewardsByFeeHandler(uint256 epoch, address feeHandler, uint256 totalRewards, uint256 totalStaked) public {
-        memberRewardsByFeeHandler[epoch][feeHandler] = Reward(totalRewards, totalStaked);
+    function setMemberRewards(uint256 _epoch, address _feeHandler, uint256 _totalRewards, uint256 _totalStaked) public {
+        memberRewards[_epoch][_feeHandler] = Reward(_totalRewards, _totalStaked);
     }
 }
