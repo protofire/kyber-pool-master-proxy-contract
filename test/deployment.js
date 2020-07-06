@@ -199,52 +199,6 @@ contract('KyberPoolMaster deployment', async (accounts) => {
       );
       expect(rewardToken).to.equal(ETH_TOKEN_ADDRESS);
     });
-
-    it('poolMaster should not be able to claim a reward tokens', async () => {
-      const kyberDao = await KyberDao.new(NO_ZERO_ADDRESS, NO_ZERO_ADDRESS);
-      const kyberFeeHandler = await KyberFeeHandler.new(kyberDao.address);
-      const ERC20RewartToken = await TestToken.new('Reward Token A', 'RTA', 18);
-
-      kyberPoolMaster = await KyberPoolMaster.new(
-        kyberDao.address,
-        2,
-        1,
-        [kyberFeeHandler.address],
-        [ERC20RewartToken.address],
-        {
-          from: poolMasterOwner,
-        }
-      );
-
-      await ERC20RewartToken.transfer(
-        kyberPoolMaster.address,
-        mulPrecision(10)
-      );
-
-      await expectRevert(
-        kyberPoolMaster.claimErc20Tokens(ERC20RewartToken.address, mike, {
-          from: poolMasterOwner,
-        }),
-        'not allowed to claim rewardTokens'
-      );
-    });
-
-    it('poolMaster should be able to claim ERC20 non reward tokens', async () => {
-      await erc20.transfer(kyberPoolMaster.address, mulPrecision(10), {
-        from: mike,
-      });
-      let mikeBalance = await erc20.balanceOf(mike);
-      expect(mikeBalance.toString()).to.equal(
-        mulPrecision(1000000).sub(mulPrecision(10)).toString()
-      );
-
-      await kyberPoolMaster.claimErc20Tokens(erc20.address, mike, {
-        from: poolMasterOwner,
-      });
-
-      mikeBalance = await erc20.balanceOf(mike);
-      expect(mikeBalance.toString()).to.equal(mulPrecision(1000000).toString());
-    });
   });
 
   describe('ownership', () => {

@@ -1,8 +1,20 @@
-const KyberPoolMaster = artifacts.require('KyberPoolMaster');
-const KyberDao = artifacts.require('KyberDaoHandleCurrentEpoch');
+const KyberPoolMaster = artifacts.require('KyberPoolMasterWithSetters');
+const KyberDao = artifacts.require('KyberDaoWithRewardPercentageSetter');
+const KyberFeeHandlerWithClaimStakerRewardERC20 = artifacts.require(
+  'KyberFeeHandlerWithClaimStakerRewardERC20'
+);
+const KyberStakingWithgetStakerDataForEpoch = artifacts.require(
+  'KyberStakingWithgetStakerDataForEpoch'
+);
+const TestToken = artifacts.require('Token.sol');
 
 const {expect, assert} = require('chai');
-const {expectEvent, expectRevert, BN} = require('@openzeppelin/test-helpers');
+const {
+  expectEvent,
+  expectRevert,
+  BN,
+  ether,
+} = require('@openzeppelin/test-helpers');
 
 const {
   NO_ZERO_ADDRESS,
@@ -31,6 +43,7 @@ let poolMasterOwner;
 let notOwner;
 let mike;
 let reverter;
+let kyberStaking;
 
 contract('KyberPoolMaster FeeHandlers', async (accounts) => {
   before('one time init', async () => {
@@ -39,7 +52,8 @@ contract('KyberPoolMaster FeeHandlers', async (accounts) => {
     notOwner = accounts[3];
     mike = accounts[4];
 
-    kyberDao = await KyberDao.new(NO_ZERO_ADDRESS, NO_ZERO_ADDRESS);
+    kyberStaking = await KyberStakingWithgetStakerDataForEpoch.new();
+    kyberDao = await KyberDao.new(NO_ZERO_ADDRESS, kyberStaking.address);
     await kyberDao.setCurrentEpochNumber(2);
 
     kyberPoolMaster = await KyberPoolMaster.new(
@@ -306,6 +320,89 @@ contract('KyberPoolMaster FeeHandlers', async (accounts) => {
 
       rewardToken = await kyberPoolMaster.rewardTokenByFeeHandle(FEE_HANDLER_C);
       expect(rewardToken).to.equal(ZERO_ADDRESS);
+    });
+
+    const prepareEpochForClaim = async ({
+      epoch,
+      staker,
+      feeHandlers,
+      stakerRewardPercentage,
+      rewardsPerEpoch,
+      stakerStake = '0',
+      delegatedStake = '1',
+    }) => {
+      await kyberDao.setStakerRewardPercentage(
+        staker,
+        epoch,
+        stakerRewardPercentage
+      );
+      await Promise.all(
+        feeHandlers.map((feeHandler, i) =>
+          feeHandler.setRewardsPerEpoch(epoch, rewardsPerEpoch[i])
+        )
+      );
+      await kyberStaking.setStakerData(
+        epoch,
+        staker,
+        stakerStake,
+        delegatedStake,
+        staker
+      );
+    };
+
+    it('should not be able to remove a fee handler that has already claimed', async () => {
+      await kyberDao.setCurrentEpochNumber(4);
+      await kyberPoolMaster.removeFeeHandler(FEE_HANDLER_A, {
+        from: poolMasterOwner,
+      });
+      await kyberPoolMaster.removeFeeHandler(FEE_HANDLER_B, {
+        from: poolMasterOwner,
+      });
+      await kyberPoolMaster.removeFeeHandler(FEE_HANDLER_C, {
+        from: poolMasterOwner,
+      });
+      await kyberPoolMaster.removeFeeHandler(FEE_HANDLER_D, {
+        from: poolMasterOwner,
+      });
+      await kyberPoolMaster.removeFeeHandler(FEE_HANDLER_F, {
+        from: poolMasterOwner,
+      });
+      const rewardToken = await TestToken.new('Reward Token A', 'RTA', 18);
+      const kyberFeeHandler = await KyberFeeHandlerWithClaimStakerRewardERC20.new(
+        kyberDao.address,
+        rewardToken.address
+      );
+      await rewardToken.transfer(kyberFeeHandler.address, ether('100'));
+      await kyberPoolMaster.addFeeHandler(
+        kyberFeeHandler.address,
+        rewardToken.address,
+        {
+          from: poolMasterOwner,
+        }
+      );
+
+      await prepareEpochForClaim({
+        epoch: 3,
+        staker: kyberPoolMaster.address,
+        feeHandlers: [kyberFeeHandler],
+        stakerRewardPercentage: '200000000000000000', // 20%
+        rewardsPerEpoch: [ether('3')], // 3ETH,
+      });
+
+      const receipt = await kyberPoolMaster.claimRewardsMaster([3], {
+        from: mike,
+      });
+
+      expectEvent(receipt, 'MasterClaimReward', {
+        epoch: '3',
+      });
+
+      await expectRevert(
+        kyberPoolMaster.removeFeeHandler(kyberFeeHandler.address, {
+          from: poolMasterOwner,
+        }),
+        'removeFeeHandler: can not remove FeeHandler successfully claimed'
+      );
     });
   });
 });

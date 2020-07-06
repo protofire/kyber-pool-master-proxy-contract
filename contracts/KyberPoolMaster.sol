@@ -65,6 +65,8 @@ contract KyberPoolMaster is Ownable {
 
     uint256 public firstEpoch;
 
+    mapping(address => bool) public successfulClaimByFeeHandler;
+
     /*** Events ***/
     event CommitNewFees(uint256 deadline, uint256 feeRate);
     event NewFees(uint256 fromEpoch, uint256 feeRate);
@@ -192,6 +194,10 @@ contract KyberPoolMaster is Ownable {
         require(
             rewardTokenByFeeHandle[_feeHandler] != IERC20(address(0)),
             "removeFeeHandler: not added"
+        );
+        require(
+            !successfulClaimByFeeHandler[_feeHandler],
+            "removeFeeHandler: can not remove FeeHandler successfully claimed"
         );
 
         if (feeHandlersList[feeHandlersList.length - 1] != _feeHandler) {
@@ -541,6 +547,10 @@ contract KyberPoolMaster is Ownable {
                         applyFee(epochDFee);
                     }
 
+                    if (!successfulClaimByFeeHandler[feeHandlersList[i]]) {
+                        successfulClaimByFeeHandler[feeHandlersList[i]] = true;
+                    }
+
                     emit MasterClaimReward(
                         _epoch,
                         feeHandlersList[i],
@@ -787,10 +797,12 @@ contract KyberPoolMaster is Ownable {
      */
     function claimErc20Tokens(address _token, address _to) external onlyOwner {
         for (uint256 i = 0; i < feeHandlersList.length; i++) {
-            require(
-                _token != address(rewardTokenByFeeHandle[feeHandlersList[i]]),
-                "not allowed to claim rewardTokens"
-            );
+            if (
+                successfulClaimByFeeHandler[feeHandlersList[i]] &&
+                _token == address(rewardTokenByFeeHandle[feeHandlersList[i]])
+            ) {
+                revert("not allowed to claim rewardTokens");
+            }
         }
 
         IERC20 token = IERC20(_token);
