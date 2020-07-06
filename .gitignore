@@ -29,6 +29,9 @@ npm-debug.log
 # local env variables
 .env
 
+# configuration file
+configs.json
+
 # truffle build directory
 build/
 

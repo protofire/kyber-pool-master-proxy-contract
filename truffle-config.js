@@ -32,7 +32,7 @@ let DEPLOYMENT_ACCOUNT_PK;
 let GAS_PRICE;
 
 if (process.env.NODE_ENV !== 'test') {
-  [INFURA_PROJECT_ID, DEPLOYMENT_ACCOUNT_PK, GAS_PRICE] = getEnv();
+  [INFURA_PROJECT_ID, DEPLOYMENT_ACCOUNT_PK, GAS_PRICE] = getConfigs();
 }
 
 module.exports = {
@@ -81,7 +81,7 @@ module.exports = {
       settings: {
         // See the solidity docs for advice about optimization and evmVersion
         optimizer: {
-          enabled: false,
+          enabled: true,
           runs: 200,
         },
         //  evmVersion: "byzantium"
@@ -90,24 +90,34 @@ module.exports = {
   },
 };
 
-function getEnv() {
-  const INFURA_PROJECT_ID = process.env.INFURA_PROJECT_ID;
-  const DEPLOYMENT_ACCOUNT_PK = (
-    process.env.DEPLOYMENT_ACCOUNT_PK || ''
-  ).replace(/^0x/, '');
-  const GAS_PRICE = process.env.GAS_PRICE || 10000000000;
-  const KYBER_DAO_ADDRESS = process.env.KYBER_DAO_ADDRESS;
-  const EPOCH_NOTICE = process.env.EPOCH_NOTICE;
-  const INITIAL_DELEGATION_FEE = process.env.INITIAL_DELEGATION_FEE;
+function getConfigs() {
+  const configs = require('./configs.json');
+
+  const INFURA_PROJECT_ID = configs.INFURA_PROJECT_ID;
+  const DEPLOYMENT_ACCOUNT_PK = (configs.DEPLOYMENT_ACCOUNT_PK || '').replace(
+    /^0x/,
+    ''
+  );
+  const GAS_PRICE = configs.GAS_PRICE || 10000000000;
+  const KYBER_DAO_ADDRESS = configs.KYBER_DAO_ADDRESS;
+  const EPOCH_NOTICE = configs.EPOCH_NOTICE;
+  const INITIAL_DELEGATION_FEE = configs.INITIAL_DELEGATION_FEE;
+  const KYBER_FEE_HANDLERS_ADDRESS = configs.KYBER_FEE_HANDLERS_ADDRESS;
+  const REWARD_TOKENS = configs.REWARD_TOKENS;
 
   if (
     !INFURA_PROJECT_ID ||
     !DEPLOYMENT_ACCOUNT_PK ||
     !KYBER_DAO_ADDRESS ||
     !EPOCH_NOTICE ||
-    !INITIAL_DELEGATION_FEE
+    !INITIAL_DELEGATION_FEE ||
+    !KYBER_FEE_HANDLERS_ADDRESS ||
+    !KYBER_FEE_HANDLERS_ADDRESS.length ||
+    !REWARD_TOKENS ||
+    !REWARD_TOKENS.length ||
+    KYBER_FEE_HANDLERS_ADDRESS.length !== REWARD_TOKENS.length
   ) {
-    throw 'Missing env';
+    throw 'Wrong configs';
   }
 
   return [INFURA_PROJECT_ID, DEPLOYMENT_ACCOUNT_PK, GAS_PRICE];
