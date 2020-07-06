@@ -42,12 +42,13 @@ This is used for noticing that a new fee has been applied.
 
 ## Deployment
 
-1. Create a `.env` file using [.env.example](.env.example) and set:
+1. Create a `configs.json` file using [configs.json.example](configs.json.example) and set:
 - `INFURA_PROJECT_ID` your Infura project id
 - `DEPLOYMENT_ACCOUNT_PK` your deploying address private key
 - `GAS_PRICE` gas price to be used, denominated in wei
 - `KYBER_DAO_ADDRESS` [KyberDao address](https://github.com/KyberNetwork/developer-portal/blob/stakingSection/testnet.md#kyberdao)
-- `KYBER_FEE_HANDLER_ADDRESS` [KyberFeeHandler address](https://github.com/KyberNetwork/developer-portal/blob/stakingSection/testnet.md#kyberfeehandler)
+- `KYBER_FEE_HANDLERS_ADDRESS` [`[KyberFeeHandlers addresses]`](https://github.com/KyberNetwork/developer-portal/blob/stakingSection/testnet.md#kyberfeehandler)
+- `REWARD_TOKENS` `[address]`, ERC20 token address each FeeHandler transfers on reward claim, or `0x0000000000000000000000000000000000000000` for ETH
 - `EPOCH_NOTICE` Delegation fee change notice. Integer parameter, for example EPOCH_NOTICE=2, then on the epoch #10 if you change the delegation fee (commitNewFee), that new fee starts on epoch #12
 - `INITIAL_DELEGATION_FEE` Initial delegation fee, denominated in 1e4 units - 100 = 1%
 
