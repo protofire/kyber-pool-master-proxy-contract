@@ -666,6 +666,7 @@ contract KyberPoolMaster is Ownable {
         return result;
     }
 
+    /**
     /* @dev PoolMember Claims rewards for a given group of epochs in all feeHandlers.
      *      It will transfer rewards where epoch->feeHandler has been claimed by the pool and not yet by the member.
      *      This contract will keep locked remainings from rounding at a wei level.

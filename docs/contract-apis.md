@@ -84,6 +84,8 @@ eth contract:send --NETWORK KyberPoolMaster@KYBER_POOL_MASTER_CONTRACT_ADDRESS '
 ### Withdrawing locked ERC20 tokens
 To prevent locking misdeposited ERC20 token in KyberPoolMaster contract forever, this function sends the complete amount of the given ERC20 deposited in the contract to a given address.
 
+This function wont allow anyone to claim ERC20 associated as the reward token of one of the FeeHanlers added to the contract from which a claim has already been performed.
+
 ---
 function **`claimErc20Tokens`**(address _token, address _to) external **onlyOwner**
 | Parameter | Type | Description |
@@ -116,12 +118,50 @@ Commit a new fee of 10%.
 eth contract:send --NETWORK KyberPoolMaster@KYBER_POOL_MASTER_CONTRACT_ADDRESS 'commitNewFee(1000)' --pk=USER_WALLET_ADDRESS_PK
 ```
 
+#### Add a FeeHandler
+Pool Master add a new FeeHandler contract and it asociated reward token to be eble to claim rewards from.
+
+---
+function **`addFeeHandler`**(address _feeHandler, IERC20 _rewardToken) external **onlyOwner**
+| Parameter | Type | Description |
+| ---------- |:-------:|:-------------------:|
+| `_feeHandler` | address | the address of the new FeeHandler |
+| `_rewardToken` | IERC20 | the address of a ERC20 token or `0x0000000000000000000000000000000000000000` if reward is in ETH |
+
+#### Example
+Add FEE_HANDLER_ADDRESS with DAI as reward token.
+
+```bash
+eth contract:send --NETWORK KyberPoolMaster@KYBER_POOL_MASTER_CONTRACT_ADDRESS 'addFeeHandler(FEE_HANDLER_ADDRESS, `0x6B175474E89094C44Da98b954EedeAC495271d0F`)' --pk=USER_WALLET_ADDRESS_PK
+```
+
+#### Remove a FeeHandler
+In case some FeeHandler has been mis-added, the contract provides the ability to remove it as well.
+To be able to remove a FileHandler no claim should have happened yet from it.
+
+---
+function **`removeFeeHandler`**(address _feeHandler) external **onlyOwner**
+| Parameter | Type | Description |
+| ---------- |:-------:|:-------------------:|
+| `_feeHandler` | address | the address of the new FeeHandler |
+
+#### Example
+Remove FEE_HANDLER_ADDRESS.
+
+```bash
+eth contract:send --NETWORK KyberPoolMaster@KYBER_POOL_MASTER_CONTRACT_ADDRESS 'removeFeeHandler(FEE_HANDLER_ADDRESS)' --pk=USER_WALLET_ADDRESS_PK
+```
+
 ## Publicly accessible methods
 
 #### Applying pending delegation fee
 Applies the pending new fee. Only one pending fee can be pending at any time.
 
-TODO - how this works
+This is used for noticing that a new fee has been applied.
+
+- Only mark a fee as applied if current epoch is greater or equal to `fromEpoch`
+- Mark a fee as applied when a new one is committed an the pending one can be applied
+- Mark a fee as applied when claiming reward for an epoch which needs to use the pending fee
 
 ---
 function **`applyPendingFee`**() public
@@ -179,24 +219,68 @@ Queries the number of delegation fees created since the contract was deployed.
 ---
 function **`delegationFeesLength`**() public view returns (uint256)
 
-
-#### claimRewardsMaster
-Claims rewards and distribute fees and its share to poolMaster for a given past epoch.
+#### feeHandlersListLength
+Queries the number of FeeHandlers added.
 
 ---
-function **`claimRewardsMaster`**(uint256 epoch) public
+function **`feeHandlersListLength`**() public view returns (uint256)
+
+#### getUnclaimedRewards
+Queries the amount of unclaimed rewards for the pool in a given epoch and feeHandler
+
+Return 0 when:
+- PoolMaster has calledRewardMaster
+- staker's reward percentage in precision for the epoch is 0
+- total reward for the epoch is 0
+
+---
+function **`getUnclaimedRewards`**(uint256 _epoch, IExtendedKyberFeeHandler _feeHandler) public view returns (uint256)
 | Parameter | Type | Description |
 | ---------- |:-------:|:-------------------:|
-| `epoch` | uint256 | for which rewards are being claimed |
+| `epoch` | uint256 | for which epoch is querying unclaimed reward |
+| `_feeHandler` | address | the address of the FeeHandler |
+
+#### Example
+Query some pool unclaimed reward for epoch 5 for FEE_HANDLER_ADDRESS
+
+```bash
+eth contract:call --NETWORK KyberPoolMaster@KYBER_POOL_MASTER_CONTRACT_ADDRESS 'getUnclaimedRewards(SOME_POOL_MEMBER_ADDRESS, 5, FEE_HANDLER_ADDRESS)'
+```
+
+#### getAllEpochWithUnclaimedRewards
+Queries the epochs with at least one feeHandler paying rewards, for the pool
+
+---
+function **`getAllEpochWithUnclaimedRewards`**() external view returns (uint256[] memory)
+
+#### Example
+Query all epocho where the pool has some rewards pending to be claimed in at least 1 FeeHandler
+
+```bash
+eth contract:call --NETWORK KyberPoolMaster@KYBER_POOL_MASTER_CONTRACT_ADDRESS 'getAllEpochWithUnclaimedRewards()'
+```
+
+#### claimRewardsMaster
+Claims rewards for a given group of epochs in all feeHandlers, distribute fees and its share to poolMaster.
+
+---
+function **`claimRewardsMaster`**(uint256[] memory _epochGroup) public
+| Parameter | Type | Description |
+| ---------- |:-------:|:-------------------:|
+| `_epochGroup` | uint256[] | gropup of epochs from which rewards are being claimed |
+
+#### Example
+Someone claims pool unclaimed reward for epoch 5, 6 and 7
 
 #### Example
 
 ```bash
-eth contract:send --NETWORK KyberPoolMaster@KYBER_POOL_MASTER_CONTRACT_ADDRESS 'applyPendingFee()' --pk=USER_WALLET_ADDRESS_PK
+eth contract:send --NETWORK KyberPoolMaster@KYBER_POOL_MASTER_CONTRACT_ADDRESS 'claimRewardsMaster([5,6,7])' --pk=USER_WALLET_ADDRESS_PK
 ```
 
 #### getUnclaimedRewardsMember
-Queries the amount of unclaimed rewards for the pool member
+Queries the amount of unclaimed rewards for the pool member in a given epoch and feeHandler
+
 Return 0 when:
 - PoolMaster has not called claimRewardMaster
 - PoolMember has previously claimed reward for the epoch
@@ -209,28 +293,44 @@ function **`getUnclaimedRewardsMember`**(address poolMember, uint256 epoch) publ
 | ---------- |:-------:|:-------------------:|
 | `poolMember` | address | address of pool member |
 | `epoch` | uint256 | for which epoch the memmber is querying unclaimed reward |
+| `_feeHandler` | address | the address of the new FeeHandler |
 
 #### Example
-Query some pool member unclaimed reward for epoch 5
+Query some pool member unclaimed reward for epoch 5 for FEE_HANDLER_ADDRESS
 
 ```bash
-eth contract:call --NETWORK KyberPoolMaster@KYBER_POOL_MASTER_CONTRACT_ADDRESS 'getUnclaimedRewardsMember(SOME_POOL_MEMBER_ADDRESS, 5)'
+eth contract:call --NETWORK KyberPoolMaster@KYBER_POOL_MASTER_CONTRACT_ADDRESS 'getUnclaimedRewardsMember(SOME_POOL_MEMBER_ADDRESS, 5, FEE_HANDLER_ADDRESS)'
+```
+
+#### getAllEpochWithUnclaimedRewardsMember
+Queries the epochs with at least one feeHandler paying rewards, for a the poolMember
+
+---
+function **`getAllEpochWithUnclaimedRewardsMember`**(address _poolMember) external view returns (uint256[] memory)
+| Parameter | Type | Description |
+| ---------- |:-------:|:-------------------:|
+| `_poolMember` | address | address of pool member |
+
+```bash
+eth contract:call --NETWORK KyberPoolMaster@KYBER_POOL_MASTER_CONTRACT_ADDRESS 'getAllEpochWithUnclaimedRewardsMember(SOME_POOL_MEMBER_ADDRESS)'
 ```
 
 #### claimRewardMember
-Claims rewards for poolMember that has not claimed for an epoch previously and the poolMaster has claimed rewards for the pool.
+PoolMember Claims rewards for a given group of epochs in all feeHandlers.
+It will transfer rewards where epoch->feeHandler has been claimed by the pool and not yet by the member.
+This contract will keep locked remainings from rounding at a wei level.
 
 ---
-function **`claimRewardsMaster`**(uint256 epoch) public
+function **`claimRewardsMaster`**(uint256[] memory _epochGroup) public
 | Parameter | Type | Description |
 | ---------- |:-------:|:-------------------:|
-| `epoch` | uint256 | for which rewards are being claimed |
+| `_epochGroup` | uint256 | gropup of epochs from which rewards are being claimed |
 
 #### Example
-Pool Members claims its unclaimed reward for epoch 5
+Pool Members claims its unclaimed reward for epoch 5, 6 and 7
 
 ```bash
-eth contract:send --NETWORK KyberPoolMaster@KYBER_POOL_MASTER_CONTRACT_ADDRESS 'claimRewardsMaster(5)' --pk=USER_WALLET_ADDRESS_PK
+eth contract:send --NETWORK KyberPoolMaster@KYBER_POOL_MASTER_CONTRACT_ADDRESS 'claimRewardsMaster([5,6,7])' --pk=USER_WALLET_ADDRESS_PK
 ```
 
 ## Publicly accessible state variables
@@ -245,33 +345,56 @@ eth contract:call --NETWORK KyberPoolMaster@KYBER_POOL_MASTER_CONTRACT_ADDRESS '
 ```
 
 ### claimedDelegateReward
-Mapping of if staker has claimed reward for Epoch
+Mapping of if staker has claimed reward for Epoch and a FeeHandler
 
 #### Example
-Check if STAKER_ADDRESS as claimed reward for epoch 5
+Check if STAKER_ADDRESS as claimed reward for epoch 5 and FEE_HANDLER_ADDRESS
 
 ```bash
-eth contract:call --NETWORK KyberPoolMaster@KYBER_POOL_MASTER_CONTRACT_ADDRESS 'claimedDelegateReward(STAKER_ADDRESS, 5)'
+eth contract:call --NETWORK KyberPoolMaster@KYBER_POOL_MASTER_CONTRACT_ADDRESS 'claimedDelegateReward(STAKER_ADDRESS, 5, FEE_HANDLER_ADDRESS)'
 ```
 
 #### claimedPoolReward
-Mapping of if poolMaster has claimed reward for an epoch for the pool
+Mapping of if poolMaster has claimed reward for an epoch and FeeHandler for the pool
 
 #### Example
-Check if pool has claimed rewards for epoch 4
+Check if pool has claimed rewards for epoch 4 and FEE_HANDLER_ADDRESS
 
 ```bash
-eth contract:call --NETWORK KyberPoolMaster@KYBER_POOL_MASTER_CONTRACT_ADDRESS 'claimedPoolReward(4)'
+eth contract:call --NETWORK KyberPoolMaster@KYBER_POOL_MASTER_CONTRACT_ADDRESS 'claimedPoolReward(4, FEE_HANDLER_ADDRESS)'
 ```
 
 #### memberRewards
-Amount of rewards owed to poolMembers for an epoch
+Amount of rewards owed to poolMembers for an epoch and FeeHandler
 
 #### Example
-Check poolMembers rewards for epoch 4
+Check poolMembers rewards for epoch 4 and FEE_HANDLER_ADDRESS
 
 ```bash
-eth contract:call --NETWORK KyberPoolMaster@KYBER_POOL_MASTER_CONTRACT_ADDRESS 'memberRewards(4)'
+eth contract:call --NETWORK KyberPoolMaster@KYBER_POOL_MASTER_CONTRACT_ADDRESS 'memberRewards(4, FEE_HANDLER_ADDRESS)'
+```
+
+#### feeHandlersList
+Array of addresses added as FeeHandlers
+
+#### rewardTokenByFeeHandle
+Mapping reward tokens asociated to feeHandler
+
+#### Example
+Check which token is asociated to FEE_HANDLER_ADDRESS
+
+```bash
+eth contract:call --NETWORK KyberPoolMaster@KYBER_POOL_MASTER_CONTRACT_ADDRESS 'rewardTokenByFeeHandle(FEE_HANDLER_ADDRESS)'
+```
+
+#### successfulClaimByFeeHandler
+Indicates if claim fro a given FeeHanler has already been performed
+
+#### Example
+Check a claim has already performed from FEE_HANDLER_ADDRESS
+
+```bash
+eth contract:call --NETWORK KyberPoolMaster@KYBER_POOL_MASTER_CONTRACT_ADDRESS 'successfulClaimByFeeHandler(FEE_HANDLER_ADDRESS)'
 ```
 
 ### Events
@@ -297,22 +420,43 @@ event **`NewFees`**(uint256 fromEpoch, uint256 feeRate);
 #### MemberClaimReward
 Emitted whenever a pool member claims its reward
 
-event **`MemberClaimReward`**(uint256 indexed epoch, address indexed poolMember, uint256 reward)
+event **`MemberClaimReward`**(uint256 indexed epoch, address indexed poolMember, address indexed feeHandler, IERC20 rewardToken, uint256 reward)
 | Parameter | Type | Description |
 | ---------- |:-------:|:-------------------:|
 | `epoch` | uint256 | epoch being claimed |
 | `poolMember` | uint256 |  pool member address |
+| `feeHandler` | address |  fee handler address |
+| `rewardToken` | IERC20 |  reward token |
 | `reward` | uint256 | reward transferred |
 
 #### MasterClaimReward
 Emitted whenever `claimRewardsMaster` is called successfully
 
-event **`MasterClaimReward`**(uint256 indexed epoch, address indexed poolMaster, uint256 totalRewards, uint256 feeApplied, uint256 feeAmount, uint256 poolMasterShare)
+event **`MasterClaimReward`**(uint256 indexed epoch, address indexed poolMaster, address indexed feeHandler, IERC20 rewardToken, uint256 totalRewards, uint256 feeApplied, uint256 feeAmount, uint256 poolMasterShare)
 | Parameter | Type | Description |
 | ---------- |:-------:|:-------------------:|
 | `epoch` | uint256 | epoch being claimed |
 | `poolMaster` | uint256 |  pool master address |
+| `feeHandler` | address |  fee handler address |
+| `rewardToken` | IERC20 |  reward token |
 | `totalRewards` | uint256 | total rewards obteined by the pool |
 | `feeApplied` | uint256 | fee applied to the claim |
 | `feeAmount` | uint256 | fee amount charged |
 | `poolMasterShare` | uint256 | pool master share |
+
+#### AddFeeHandler
+Emmited wheneve `addFeeHandler` is called successfully
+
+event **`AddFeeHandler`**(address indexed feeHandler, IERC20 indexed rewardToken)
+| Parameter | Type | Description |
+| ---------- |:-------:|:-------------------:|
+| `feeHandler` | address |  fee handler address |
+| `rewardToken` | IERC20 |  reward token |
+
+#### RemoveFeeHandler
+Emmited wheneve `addFeeHandler` is called successfully
+
+event **`RemoveFeeHandler`**(address indexed feeHandler)
+| Parameter | Type | Description |
+| ---------- |:-------:|:-------------------:|
+| `feeHandler` | address |  fee handler address |
