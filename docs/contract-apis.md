@@ -81,26 +81,6 @@ Set NEW_OWNER_ADDRESS as the new Pool master
 eth contract:send --NETWORK KyberPoolMaster@KYBER_POOL_MASTER_CONTRACT_ADDRESS 'transeferOwnership(NEW_OWNER_ADDRESS)' --pk=USER_WALLET_ADDRESS_PK
 ```
 
-### Withdrawing locked ERC20 tokens
-To prevent locking misdeposited ERC20 token in KyberPoolMaster contract forever, this function sends the complete amount of the given ERC20 deposited in the contract to a given address.
-
-This function won't allow anyone to claim ERC20 associated as the reward token of one of the FeeHanlers added to the contract from which a claim has already been performed.
-
----
-function **`claimErc20Tokens`**(address _token, address _to) external **onlyOwner**
-| Parameter | Type | Description |
-| ---------- |:-------:|:-------------------:|
-| `_token` | address | ERC20 token address to claim |
-| `_to` | address | address to send the ERC20 token |
----
-
-#### Example
-Send SOME_ERC20_ADDRESS to SOME_ADDRESS
-
-```bash
-eth contract:send --NETWORK KyberPoolMaster@KYBER_POOL_MASTER_CONTRACT_ADDRESS 'claimErc20Tokens(SOME_ERC20_ADDRESS, SOME_ADDRESS)' --pk=USER_WALLET_ADDRESS_PK
-```
-
 #### Committing a new Delegation Fee
 Pool Master commits a new delegation fee to be applied from `currentEpoch + epochNotive`.
 
@@ -263,6 +243,8 @@ eth contract:call --NETWORK KyberPoolMaster@KYBER_POOL_MASTER_CONTRACT_ADDRESS '
 #### claimRewardsMaster
 Claims rewards for a given group of epochs in all feeHandlers, distribute fees and its share to poolMaster.
 
+**This function needs to be executed in orde to be able for a member to claim it share.**
+
 ---
 function **`claimRewardsMaster`**(uint256[] memory _epochGroup) public
 | Parameter | Type | Description |
@@ -319,6 +301,8 @@ eth contract:call --NETWORK KyberPoolMaster@KYBER_POOL_MASTER_CONTRACT_ADDRESS '
 PoolMember Claims rewards for a given group of epochs in all feeHandlers.
 It will transfer rewards where epoch->feeHandler has been claimed by the pool and not yet by the member.
 This contract will keep locked remainings from rounding at a wei level.
+
+**In order for a member to call sucesfully this function for a specific epoch, claimRewardsMaster needs to be executed before for the same epoch.**
 
 ---
 function **`claimRewardsMaster`**(uint256[] memory _epochGroup) public
