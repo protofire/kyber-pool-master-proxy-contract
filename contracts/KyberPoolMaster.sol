@@ -809,12 +809,14 @@ contract KyberPoolMaster is Ownable {
      */
     function claimErc20Tokens(address _token, address _to) external onlyOwner {
         for (uint256 i = 0; i < feeHandlersList.length; i++) {
-            if (
-                successfulClaimByFeeHandler[feeHandlersList[i]] &&
-                _token == address(rewardTokenByFeeHandler[feeHandlersList[i]])
-            ) {
-                revert("not allowed to claim rewardTokens");
-            }
+            bool isTokenAndSuccesfulClaim = _token ==
+                address(rewardTokenByFeeHandler[feeHandlersList[i]]) &&
+                successfulClaimByFeeHandler[feeHandlersList[i]];
+
+            require(
+                !isTokenAndSuccesfulClaim,
+                "not allowed to claim rewardTokens"
+            );
         }
 
         IERC20 token = IERC20(_token);
