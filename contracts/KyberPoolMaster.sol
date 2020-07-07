@@ -61,11 +61,22 @@ contract KyberPoolMaster is Ownable {
     IKyberStaking public kyberStaking;
 
     address[] public feeHandlersList;
-    mapping(address => IERC20) public rewardTokenByFeeHandle;
+    mapping(address => IERC20) public rewardTokenByFeeHandler;
 
     uint256 public firstEpoch;
 
     mapping(address => bool) public successfulClaimByFeeHandler;
+
+    struct RewardInfo {
+        IExtendedKyberFeeHandler kyberFeeHandler;
+        IERC20 rewardToken;
+        uint256 initialBalance;
+        uint256 totalRewards;
+        uint256 totalFee;
+        uint256 rewardsAfterFee;
+        uint256 poolMembersShare;
+        uint256 poolMasterShare;
+    }
 
     /*** Events ***/
     event CommitNewFees(uint256 deadline, uint256 feeRate);
@@ -144,16 +155,21 @@ contract KyberPoolMaster is Ownable {
                 "ctor: feeHandler is missing"
             );
             require(
-                rewardTokenByFeeHandle[_kyberFeeHandlers[i]] ==
+                rewardTokenByFeeHandler[_kyberFeeHandlers[i]] ==
                     IERC20(address(0)),
                 "ctor: repeated feeHandler"
             );
 
             feeHandlersList.push(_kyberFeeHandlers[i]);
-            rewardTokenByFeeHandle[_kyberFeeHandlers[i]] = _rewardTokens[i] ==
+            rewardTokenByFeeHandler[_kyberFeeHandlers[i]] = _rewardTokens[i] ==
                 IERC20(address(0))
                 ? ETH_TOKEN_ADDRESS
                 : _rewardTokens[i];
+
+            emit AddFeeHandler(
+                _kyberFeeHandlers[i],
+                rewardTokenByFeeHandler[_kyberFeeHandlers[i]]
+            );
         }
 
         emit CommitNewFees(firstEpoch, _delegationFee);
@@ -174,16 +190,17 @@ contract KyberPoolMaster is Ownable {
             "addFeeHandler: _feeHandler is missing"
         );
         require(
-            rewardTokenByFeeHandle[_feeHandler] == IERC20(address(0)),
+            rewardTokenByFeeHandler[_feeHandler] == IERC20(address(0)),
             "addFeeHandler: already added"
         );
 
         feeHandlersList.push(_feeHandler);
-        rewardTokenByFeeHandle[_feeHandler] = _rewardToken == IERC20(address(0))
+        rewardTokenByFeeHandler[_feeHandler] = _rewardToken ==
+            IERC20(address(0))
             ? ETH_TOKEN_ADDRESS
             : _rewardToken;
 
-        emit AddFeeHandler(_feeHandler, rewardTokenByFeeHandle[_feeHandler]);
+        emit AddFeeHandler(_feeHandler, rewardTokenByFeeHandler[_feeHandler]);
     }
 
     /**
@@ -192,7 +209,7 @@ contract KyberPoolMaster is Ownable {
      */
     function removeFeeHandler(address _feeHandler) external onlyOwner {
         require(
-            rewardTokenByFeeHandle[_feeHandler] != IERC20(address(0)),
+            rewardTokenByFeeHandler[_feeHandler] != IERC20(address(0)),
             "removeFeeHandler: not added"
         );
         require(
@@ -211,7 +228,7 @@ contract KyberPoolMaster is Ownable {
         }
 
         feeHandlersList.pop();
-        delete rewardTokenByFeeHandle[_feeHandler];
+        delete rewardTokenByFeeHandler[_feeHandler];
 
         emit RemoveFeeHandler(_feeHandler);
     }
@@ -438,17 +455,6 @@ contract KyberPoolMaster is Ownable {
         return result;
     }
 
-    struct RewardInfo {
-        IExtendedKyberFeeHandler kyberFeeHandler;
-        IERC20 rewardToken;
-        uint256 initialBalance;
-        uint256 totalRewards;
-        uint256 totalFee;
-        uint256 rewardsAfterFee;
-        uint256 poolMembersShare;
-        uint256 poolMasterShare;
-    }
-
     /**
      * @dev  Claims rewards for a given group of epochs in all feeHandlers, distribute fees and its share to poolMaster
      * @param _epochGroup An array of epochs for which rewards are being claimed
@@ -484,23 +490,18 @@ contract KyberPoolMaster is Ownable {
 
                 if (unclaimed > 0) {
                     rewardInfo
-                        .rewardToken = rewardTokenByFeeHandle[feeHandlersList[i]];
-                    rewardInfo.initialBalance = rewardInfo.rewardToken ==
-                        ETH_TOKEN_ADDRESS
-                        ? address(this).balance
-                        : rewardInfo.rewardToken.balanceOf(address(this));
+                        .rewardToken = rewardTokenByFeeHandler[feeHandlersList[i]];
+                    rewardInfo.initialBalance = getBalance(
+                        rewardInfo.rewardToken
+                    );
 
                     rewardInfo.kyberFeeHandler.claimStakerReward(
                         address(this),
                         _epoch
                     );
 
-                    rewardInfo.totalRewards = rewardInfo.rewardToken ==
-                        ETH_TOKEN_ADDRESS
-                        ? address(this).balance.sub(rewardInfo.initialBalance)
-                        : rewardInfo.rewardToken.balanceOf(address(this)).sub(
-                            rewardInfo.initialBalance
-                        );
+                    rewardInfo.totalRewards = getBalance(rewardInfo.rewardToken)
+                        .sub(rewardInfo.initialBalance);
 
                     rewardInfo.totalFee = rewardInfo
                         .totalRewards
@@ -667,7 +668,7 @@ contract KyberPoolMaster is Ownable {
     }
 
     /**
-    /* @dev PoolMember Claims rewards for a given group of epochs in all feeHandlers.
+     * @dev PoolMember Claims rewards for a given group of epochs in all feeHandlers.
      *      It will transfer rewards where epoch->feeHandler has been claimed by the pool and not yet by the member.
      *      This contract will keep locked remainings from rounding at a wei level.
      * @param _epochGroup An array of epochs for which rewards are being claimed
@@ -696,7 +697,7 @@ contract KyberPoolMaster is Ownable {
 
 
                         IERC20 rewardToken
-                     = rewardTokenByFeeHandle[feeHandlersList[i]];
+                     = rewardTokenByFeeHandler[feeHandlersList[i]];
 
                     if (poolMemberShare > 0) {
                         int256 tokenI = findIndex(
@@ -746,6 +747,16 @@ contract KyberPoolMaster is Ownable {
     }
 
     // Utils
+
+    /**
+     * @dev Returns `_token` balance of this contract
+     */
+    function getBalance(IERC20 _token) internal view returns (uint256) {
+        return
+            _token == ETH_TOKEN_ADDRESS
+                ? address(this).balance
+                : _token.balanceOf(address(this));
+    }
 
     /**
      * @dev Returns the index of `_token` if `_tokens` contains it or -1
@@ -800,7 +811,7 @@ contract KyberPoolMaster is Ownable {
         for (uint256 i = 0; i < feeHandlersList.length; i++) {
             if (
                 successfulClaimByFeeHandler[feeHandlersList[i]] &&
-                _token == address(rewardTokenByFeeHandle[feeHandlersList[i]])
+                _token == address(rewardTokenByFeeHandler[feeHandlersList[i]])
             ) {
                 revert("not allowed to claim rewardTokens");
             }
@@ -816,7 +827,7 @@ contract KyberPoolMaster is Ownable {
      */
     receive() external payable {
         require(
-            rewardTokenByFeeHandle[msg.sender] == ETH_TOKEN_ADDRESS,
+            rewardTokenByFeeHandler[msg.sender] == ETH_TOKEN_ADDRESS,
             "only accept ETH from a KyberFeeHandler"
         );
     }

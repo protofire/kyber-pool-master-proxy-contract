@@ -118,7 +118,7 @@ contract('KyberPoolMaster FeeHandlers', async (accounts) => {
       );
       expect(feeHandlersList).to.equal(FEE_HANDLER_A);
 
-      const rewardToken = await kyberPoolMaster.rewardTokenByFeeHandle(
+      const rewardToken = await kyberPoolMaster.rewardTokenByFeeHandler(
         FEE_HANDLER_A
       );
       expect(rewardToken).to.equal(REWARD_TOKEN_1);
@@ -159,7 +159,7 @@ contract('KyberPoolMaster FeeHandlers', async (accounts) => {
       );
       expect(feeHandlersList).to.equal(FEE_HANDLER_B);
 
-      const rewardToken = await kyberPoolMaster.rewardTokenByFeeHandle(
+      const rewardToken = await kyberPoolMaster.rewardTokenByFeeHandler(
         FEE_HANDLER_B
       );
       expect(rewardToken).to.equal(ETH_TOKEN_ADDRESS);
@@ -230,7 +230,7 @@ contract('KyberPoolMaster FeeHandlers', async (accounts) => {
       );
       expect(feeHandlersList.includes(FEE_HANDLER_D)).to.equal(false);
 
-      const rewardToken = await kyberPoolMaster.rewardTokenByFeeHandle(
+      const rewardToken = await kyberPoolMaster.rewardTokenByFeeHandler(
         FEE_HANDLER_D
       );
       expect(rewardToken).to.equal(ZERO_ADDRESS);
@@ -260,7 +260,7 @@ contract('KyberPoolMaster FeeHandlers', async (accounts) => {
       );
       expect(feeHandlersList.includes(FEE_HANDLER_F)).to.equal(false);
 
-      const rewardToken = await kyberPoolMaster.rewardTokenByFeeHandle(
+      const rewardToken = await kyberPoolMaster.rewardTokenByFeeHandler(
         FEE_HANDLER_F
       );
       expect(rewardToken).to.equal(ZERO_ADDRESS);
@@ -290,7 +290,7 @@ contract('KyberPoolMaster FeeHandlers', async (accounts) => {
       );
       expect(feeHandlersList.includes(FEE_HANDLER_B)).to.equal(false);
 
-      let rewardToken = await kyberPoolMaster.rewardTokenByFeeHandle(
+      let rewardToken = await kyberPoolMaster.rewardTokenByFeeHandler(
         FEE_HANDLER_B
       );
       expect(rewardToken).to.equal(ZERO_ADDRESS);
@@ -318,7 +318,9 @@ contract('KyberPoolMaster FeeHandlers', async (accounts) => {
       );
       expect(feeHandlersList.includes(FEE_HANDLER_C)).to.equal(false);
 
-      rewardToken = await kyberPoolMaster.rewardTokenByFeeHandle(FEE_HANDLER_C);
+      rewardToken = await kyberPoolMaster.rewardTokenByFeeHandler(
+        FEE_HANDLER_C
+      );
       expect(rewardToken).to.equal(ZERO_ADDRESS);
     });
 

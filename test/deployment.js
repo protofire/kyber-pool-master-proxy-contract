@@ -134,7 +134,7 @@ contract('KyberPoolMaster deployment', async (accounts) => {
       );
     });
 
-    it('should set the right parameters', async () => {
+    it('should deploy a KyberPoolMaster and set the right parameters', async () => {
       const kyberDao = await KyberDao.new(NO_ZERO_ADDRESS, NO_ZERO_ADDRESS);
 
       const kyberFeeHandler = await KyberFeeHandler.new(kyberDao.address);
@@ -164,7 +164,7 @@ contract('KyberPoolMaster deployment', async (accounts) => {
       const kyberFeeHandlerAddress = await kyberPoolMaster.feeHandlersList(0);
       expect(kyberFeeHandlerAddress).to.equal(kyberFeeHandler.address);
 
-      const rewardToken = await kyberPoolMaster.rewardTokenByFeeHandle(
+      const rewardToken = await kyberPoolMaster.rewardTokenByFeeHandler(
         kyberFeeHandler.address
       );
       expect(rewardToken).to.equal(ERC20RewartToken.address);
@@ -178,7 +178,7 @@ contract('KyberPoolMaster deployment', async (accounts) => {
       expect(delegationFee.applied).to.equal(true);
     });
 
-    it('should set ETH as reward token when ZERO_ADDRESS is used', async () => {
+    it('should deploy a KyberPoolMaster and set ETH as reward token when ZERO_ADDRESS is used', async () => {
       const kyberDao = await KyberDao.new(NO_ZERO_ADDRESS, NO_ZERO_ADDRESS);
 
       const kyberFeeHandler = await KyberFeeHandler.new(kyberDao.address);
@@ -194,7 +194,7 @@ contract('KyberPoolMaster deployment', async (accounts) => {
         }
       );
 
-      const rewardToken = await kyberPoolMaster.rewardTokenByFeeHandle(
+      const rewardToken = await kyberPoolMaster.rewardTokenByFeeHandler(
         kyberFeeHandler.address
       );
       expect(rewardToken).to.equal(ETH_TOKEN_ADDRESS);

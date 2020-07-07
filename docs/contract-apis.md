@@ -84,7 +84,7 @@ eth contract:send --NETWORK KyberPoolMaster@KYBER_POOL_MASTER_CONTRACT_ADDRESS '
 ### Withdrawing locked ERC20 tokens
 To prevent locking misdeposited ERC20 token in KyberPoolMaster contract forever, this function sends the complete amount of the given ERC20 deposited in the contract to a given address.
 
-This function wont allow anyone to claim ERC20 associated as the reward token of one of the FeeHanlers added to the contract from which a claim has already been performed.
+This function won't allow anyone to claim ERC20 associated as the reward token of one of the FeeHanlers added to the contract from which a claim has already been performed.
 
 ---
 function **`claimErc20Tokens`**(address _token, address _to) external **onlyOwner**
@@ -137,7 +137,7 @@ eth contract:send --NETWORK KyberPoolMaster@KYBER_POOL_MASTER_CONTRACT_ADDRESS '
 
 #### Remove a FeeHandler
 In case some FeeHandler has been mis-added, the contract provides the ability to remove it as well.
-To be able to remove a FileHandler no claim should have happened yet from it.
+To be able to remove a FeeHandler no claim should have happened yet from it.
 
 ---
 function **`removeFeeHandler`**(address _feeHandler) external **onlyOwner**
@@ -388,7 +388,7 @@ eth contract:call --NETWORK KyberPoolMaster@KYBER_POOL_MASTER_CONTRACT_ADDRESS '
 ```
 
 #### successfulClaimByFeeHandler
-Indicates if claim fro a given FeeHanler has already been performed
+Indicates if claim for a given FeeHandler has already been performed
 
 #### Example
 Check a claim has already performed from FEE_HANDLER_ADDRESS
@@ -445,7 +445,7 @@ event **`MasterClaimReward`**(uint256 indexed epoch, address indexed poolMaster,
 | `poolMasterShare` | uint256 | pool master share |
 
 #### AddFeeHandler
-Emmited wheneve `addFeeHandler` is called successfully
+Emmited whenever `addFeeHandler` is called successfully
 
 event **`AddFeeHandler`**(address indexed feeHandler, IERC20 indexed rewardToken)
 | Parameter | Type | Description |
@@ -454,7 +454,7 @@ event **`AddFeeHandler`**(address indexed feeHandler, IERC20 indexed rewardToken
 | `rewardToken` | IERC20 |  reward token |
 
 #### RemoveFeeHandler
-Emmited wheneve `addFeeHandler` is called successfully
+Emmited whenever `addFeeHandler` is called successfully
 
 event **`RemoveFeeHandler`**(address indexed feeHandler)
 | Parameter | Type | Description |
