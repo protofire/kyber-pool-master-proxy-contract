@@ -742,16 +742,6 @@ contract KyberPoolMaster is Ownable {
     // Utils
 
     /**
-     * @dev Returns `_token` balance of this contract
-     */
-    function getBalance(IERC20 _token) internal view returns (uint256) {
-        return
-            _token == ETH_TOKEN_ADDRESS
-                ? address(this).balance
-                : _token.balanceOf(address(this));
-    }
-
-    /**
      * @dev Returns the index of `_token` if `_tokens` contains it or -1
      */
     function findIndex(IERC20[] memory _tokens, IERC20 _token)
