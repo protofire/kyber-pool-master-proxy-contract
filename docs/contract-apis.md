@@ -243,7 +243,7 @@ eth contract:call --NETWORK KyberPoolMaster@KYBER_POOL_MASTER_CONTRACT_ADDRESS '
 #### claimRewardsMaster
 Claims rewards for a given group of epochs in all feeHandlers, distribute fees and its share to poolMaster.
 
-**This function needs to be executed in orde to be able for a member to claim it share.**
+**This function needs to be executed in order to be able for a member to claim its share.**
 
 ---
 function **`claimRewardsMaster`**(uint256[] memory _epochGroup) public
@@ -302,7 +302,7 @@ PoolMember Claims rewards for a given group of epochs in all feeHandlers.
 It will transfer rewards where epoch->feeHandler has been claimed by the pool and not yet by the member.
 This contract will keep locked remainings from rounding at a wei level.
 
-**In order for a member to call sucesfully this function for a specific epoch, claimRewardsMaster needs to be executed before for the same epoch.**
+**In order for a member to call succesfully this function for a specific epoch, claimRewardsMaster needs to be executed before for the same epoch.**
 
 ---
 function **`claimRewardsMaster`**(uint256[] memory _epochGroup) public
