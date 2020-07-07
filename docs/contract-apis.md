@@ -16,7 +16,7 @@ Pool Master deposits KNC into staking contract through KyberPoolMaster contract.
 function **`masterDeposit`**(uint256 amount) external **onlyOwner**
 | Parameter | Type | Description |
 | ---------- |:-------:|:-------------------:|
-| `amount` | uint256 | KNC twei to be deposited |
+| `amount` | uint256 | KNC wei to be deposited |
 ---
 
 #### Example
@@ -33,7 +33,7 @@ Pool Master can withdraw KNC (in token wei) from the staking contract at any poi
 function **`masterWithdraw`**(uint256 amount) external **onlyOwner**
 | Parameter | Type | Description |
 | ---------- |:-------:|:-------------------:|
-| `amount` | uint256 | KNC twei to be withdrawn |
+| `amount` | uint256 | KNC wei to be withdrawn |
 ---
 
 #### Example
