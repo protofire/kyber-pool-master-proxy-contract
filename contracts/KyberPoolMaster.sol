@@ -70,7 +70,6 @@ contract KyberPoolMaster is Ownable {
     struct RewardInfo {
         IExtendedKyberFeeHandler kyberFeeHandler;
         IERC20 rewardToken;
-        uint256 initialBalance;
         uint256 totalRewards;
         uint256 totalFee;
         uint256 rewardsAfterFee;
@@ -414,9 +413,7 @@ contract KyberPoolMaster is Ownable {
             return 0;
         }
 
-        uint256 unclaimed = rewardsPerEpoch.mul(perInPrecision).div(PRECISION);
-
-        return unclaimed;
+        return rewardsPerEpoch.mul(perInPrecision).div(PRECISION);
     }
 
     /**
@@ -491,17 +488,13 @@ contract KyberPoolMaster is Ownable {
                 if (unclaimed > 0) {
                     rewardInfo
                         .rewardToken = rewardTokenByFeeHandler[feeHandlersList[i]];
-                    rewardInfo.initialBalance = getBalance(
-                        rewardInfo.rewardToken
-                    );
 
                     rewardInfo.kyberFeeHandler.claimStakerReward(
                         address(this),
                         _epoch
                     );
 
-                    rewardInfo.totalRewards = getBalance(rewardInfo.rewardToken)
-                        .sub(rewardInfo.initialBalance);
+                    rewardInfo.totalRewards = unclaimed;
 
                     rewardInfo.totalFee = rewardInfo
                         .totalRewards
@@ -800,28 +793,6 @@ contract KyberPoolMaster is Ownable {
      */
     function feeHandlersListLength() public view returns (uint256) {
         return feeHandlersList.length;
-    }
-
-    /**
-     * @dev Transfers the total amount of a given ERC20 deposited in this contracto a given address
-     * @param _token ERC20 token address
-     * @param _to address of the receiver
-     */
-    function claimErc20Tokens(address _token, address _to) external onlyOwner {
-        for (uint256 i = 0; i < feeHandlersList.length; i++) {
-            bool isTokenAndSuccesfulClaim = _token ==
-                address(rewardTokenByFeeHandler[feeHandlersList[i]]) &&
-                successfulClaimByFeeHandler[feeHandlersList[i]];
-
-            require(
-                !isTokenAndSuccesfulClaim,
-                "not allowed to claim rewardTokens"
-            );
-        }
-
-        IERC20 token = IERC20(_token);
-        uint256 balance = token.balanceOf(address(this));
-        SafeERC20.safeTransfer(token, _to, balance);
     }
 
     /**
