@@ -1224,7 +1224,7 @@ contract('KyberPoolMaster claiming', async (accounts) => {
     });
   });
 
-  describe('#claimRewardMember', () => {
+  describe('#claimRewardsMember', () => {
     beforeEach('running before each test', async () => {
       await reverter.revert();
 
@@ -1292,7 +1292,9 @@ contract('KyberPoolMaster claiming', async (accounts) => {
 
       const mikeBalance = await balance.current(mike);
 
-      const txInfo = await kyberPoolMaster.claimRewardMember([1], {from: mike});
+      const txInfo = await kyberPoolMaster.methods[
+        'claimRewardsMember(uint256[])'
+      ]([1], {from: mike});
       const tx = await web3.eth.getTransaction(txInfo.tx);
       const gasUsed = new BN(txInfo.receipt.gasUsed);
       const gasPrice = new BN(tx.gasPrice);
@@ -1343,7 +1345,9 @@ contract('KyberPoolMaster claiming', async (accounts) => {
 
       const mikeBalance = await balance.current(mike);
 
-      const txInfo = await kyberPoolMaster.claimRewardMember([1], {from: mike});
+      const txInfo = await kyberPoolMaster.methods[
+        'claimRewardsMember(uint256[])'
+      ]([1], {from: mike});
       const tx = await web3.eth.getTransaction(txInfo.tx);
       const gasUsed = new BN(txInfo.receipt.gasUsed);
       const gasPrice = new BN(tx.gasPrice);
@@ -1381,7 +1385,9 @@ contract('KyberPoolMaster claiming', async (accounts) => {
 
       const mikeBalance = await balance.current(mike);
 
-      const txInfo = await kyberPoolMaster.claimRewardMember([1], {from: mike});
+      const txInfo = await kyberPoolMaster.methods[
+        'claimRewardsMember(uint256[])'
+      ]([1], {from: mike});
       const tx = await web3.eth.getTransaction(txInfo.tx);
       const gasUsed = new BN(txInfo.receipt.gasUsed);
       const gasPrice = new BN(tx.gasPrice);
@@ -1420,7 +1426,9 @@ contract('KyberPoolMaster claiming', async (accounts) => {
 
       const mikeBalance = await balance.current(mike);
 
-      const txInfo = await kyberPoolMaster.claimRewardMember([1], {from: mike});
+      const txInfo = await kyberPoolMaster.methods[
+        'claimRewardsMember(uint256[])'
+      ]([1], {from: mike});
       const tx = await web3.eth.getTransaction(txInfo.tx);
       const gasUsed = new BN(txInfo.receipt.gasUsed);
       const gasPrice = new BN(tx.gasPrice);
@@ -1459,7 +1467,9 @@ contract('KyberPoolMaster claiming', async (accounts) => {
 
       const mikeBalance = await balance.current(mike);
 
-      const txInfo = await kyberPoolMaster.claimRewardMember([1], {from: mike});
+      const txInfo = await kyberPoolMaster.methods[
+        'claimRewardsMember(uint256[])'
+      ]([1], {from: mike});
       expectEvent(txInfo, 'MemberClaimReward', {
         epoch: '1',
         poolMember: mike,
@@ -1476,6 +1486,51 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       const expectedBalance = mikeBalance
         .sub(gasUsed.mul(gasPrice))
         .add(new BN('2'));
+      expect(mikeBalanceAfter.toString()).to.equal(expectedBalance.toString());
+    });
+
+    it('anyone should be able to claim share for any other poolMember', async () => {
+      await kyberPoolMaster.setClaimedPoolReward(1, kyberFeeHandler1.address);
+      const claimedRewardMaster = await kyberPoolMaster.claimedPoolReward(
+        1,
+        kyberFeeHandler1.address
+      );
+      expect(claimedRewardMaster).to.equal(true);
+
+      const claimedRewardMember = await kyberPoolMaster.claimedDelegateReward(
+        1,
+        mike,
+        kyberFeeHandler1.address
+      );
+      expect(claimedRewardMember).to.equal(false);
+
+      await kyberStaking.setStakerData(1, mike, 1, 0, kyberPoolMaster.address);
+      const stakerRawData = await kyberStaking.getStakerRawData(mike, 1);
+      expect(stakerRawData[0].toString()).to.equal('1');
+      expect(stakerRawData[2]).to.equal(kyberPoolMaster.address);
+
+      await kyberPoolMaster.setMemberRewards(
+        1,
+        kyberFeeHandler1.address,
+        10,
+        5
+      );
+
+      const mikeBalance = await balance.current(mike);
+
+      const txInfo = await kyberPoolMaster.methods[
+        'claimRewardsMember(uint256[],address)'
+      ]([1], mike, {from: paula});
+      expectEvent(txInfo, 'MemberClaimReward', {
+        epoch: '1',
+        poolMember: mike,
+        feeHandler: kyberFeeHandler1.address,
+        rewardToken: ETH_TOKEN_ADDRESS,
+        reward: '2',
+      });
+
+      const mikeBalanceAfter = await balance.current(mike);
+      const expectedBalance = mikeBalance.add(new BN('2'));
       expect(mikeBalanceAfter.toString()).to.equal(expectedBalance.toString());
     });
 
@@ -1560,7 +1615,9 @@ contract('KyberPoolMaster claiming', async (accounts) => {
 
       const mikeBalance = await rewardTokenA.balanceOf(mike);
 
-      const txInfo = await kyberPoolMaster.claimRewardMember([1], {from: mike});
+      const txInfo = await kyberPoolMaster.methods[
+        'claimRewardsMember(uint256[])'
+      ]([1], {from: mike});
       expectEvent(txInfo, 'MemberClaimReward', {
         epoch: '1',
         poolMember: mike,
@@ -1617,7 +1674,9 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       const mikeRTABalance = await rewardTokenA.balanceOf(mike);
       const mikeRTBBalance = await rewardTokenB.balanceOf(mike);
 
-      const txInfo = await kyberPoolMaster.claimRewardMember([1, 2], {
+      const txInfo = await kyberPoolMaster.methods[
+        'claimRewardsMember(uint256[])'
+      ]([1, 2], {
         from: mike,
       });
       expectEvent(txInfo, 'MemberClaimReward', {
@@ -1710,7 +1769,9 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       const paulaBalance = await balance.current(paula);
       const poolBalance = await balance.current(kyberPoolMaster.address);
 
-      const mikeTxInfo = await kyberPoolMaster.claimRewardMember([1], {
+      const mikeTxInfo = await kyberPoolMaster.methods[
+        'claimRewardsMember(uint256[])'
+      ]([1], {
         from: mike,
       });
       expectEvent(mikeTxInfo, 'MemberClaimReward', {
@@ -1721,7 +1782,9 @@ contract('KyberPoolMaster claiming', async (accounts) => {
         reward: '3499',
       });
 
-      const crisTxInfo = await kyberPoolMaster.claimRewardMember([1], {
+      const crisTxInfo = await kyberPoolMaster.methods[
+        'claimRewardsMember(uint256[])'
+      ]([1], {
         from: cris,
       });
       expectEvent(crisTxInfo, 'MemberClaimReward', {
@@ -1732,7 +1795,9 @@ contract('KyberPoolMaster claiming', async (accounts) => {
         reward: '499',
       });
 
-      const paulaTxInfo = await kyberPoolMaster.claimRewardMember([1], {
+      const paulaTxInfo = await kyberPoolMaster.methods[
+        'claimRewardsMember(uint256[])'
+      ]([1], {
         from: paula,
       });
       expectEvent(paulaTxInfo, 'MemberClaimReward', {

@@ -297,7 +297,7 @@ function **`getAllEpochWithUnclaimedRewardsMember`**(address _poolMember) extern
 eth contract:call --NETWORK KyberPoolMaster@KYBER_POOL_MASTER_CONTRACT_ADDRESS 'getAllEpochWithUnclaimedRewardsMember(SOME_POOL_MEMBER_ADDRESS)'
 ```
 
-#### claimRewardMember
+#### claimRewardsMember
 PoolMember Claims rewards for a given group of epochs in all feeHandlers.
 It will transfer rewards where epoch->feeHandler has been claimed by the pool and not yet by the member.
 This contract will keep locked remainings from rounding at a wei level.
@@ -305,7 +305,7 @@ This contract will keep locked remainings from rounding at a wei level.
 **In order for a member to call succesfully this function for a specific epoch, claimRewardsMaster needs to be executed before for the same epoch.**
 
 ---
-function **`claimRewardsMaster`**(uint256[] memory _epochGroup) public
+function **`claimRewardsMember`**(uint256[] memory _epochGroup) public
 | Parameter | Type | Description |
 | ---------- |:-------:|:-------------------:|
 | `_epochGroup` | uint256 | gropup of epochs from which rewards are being claimed |
@@ -314,7 +314,28 @@ function **`claimRewardsMaster`**(uint256[] memory _epochGroup) public
 Pool Members claims its unclaimed reward for epoch 5, 6 and 7
 
 ```bash
-eth contract:send --NETWORK KyberPoolMaster@KYBER_POOL_MASTER_CONTRACT_ADDRESS 'claimRewardsMaster([5,6,7])' --pk=USER_WALLET_ADDRESS_PK
+eth contract:send --NETWORK KyberPoolMaster@KYBER_POOL_MASTER_CONTRACT_ADDRESS 'claimRewardsMember([5,6,7])' --pk=USER_WALLET_ADDRESS_PK
+```
+
+#### claimRewardsMember
+Someone claims rewards for a poolMember in a given group of epochs in all feeHandlers.
+It will transfer rewards where epoch->feeHandler has been claimed by the pool and not yet by the member.
+This contract will keep locked remainings from rounding at a wei level.
+
+**In order for a member to call succesfully this function for a specific epoch, claimRewardsMaster needs to be executed before for the same epoch.**
+
+---
+function **`claimRewardsMember`**(uint256[] memory _epochGroup, address _poolMember) public
+| Parameter | Type | Description |
+| ---------- |:-------:|:-------------------:|
+| `_epochGroup` | uint256 | gropup of epochs from which rewards are being claimed |
+| `_poolMember` | address | Optional PoolMember address to claim rewards for |
+
+#### Example
+USER claims rewards for POOL_MEMBER in epoch 5, 6 and 7
+
+```bash
+eth contract:send --NETWORK KyberPoolMaster@KYBER_POOL_MASTER_CONTRACT_ADDRESS 'claimRewardsMember([5,6,7], POOL_MEMBER_ADDRESS)' --pk=USER_WALLET_ADDRESS_PK
 ```
 
 ## Publicly accessible state variables
