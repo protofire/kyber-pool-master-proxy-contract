@@ -193,7 +193,7 @@ eth contract:call --NETWORK KyberPoolMaster@KYBER_POOL_MASTER_CONTRACT_ADDRESS '
 ```
 
 #### delegationFeesLength
-QQueries the number of delegation fees created since a contract was deployed.
+Queries the number of delegation fees created since a contract was deployed.
 
 ---
 function **`delegationFeesLength`**() public view returns (uint256)
