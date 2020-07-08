@@ -42,11 +42,14 @@ contract('KyberPoolMaster vote', async (accounts) => {
       kyberDao.address
     );
 
+    const ERC20RewartToken = await TestToken.new('Reward Token A', 'RTA', 18);
+
     poolMaster = await KyberPoolMaster.new(
       kyberDao.address,
-      kyberFeeHandler.address,
       2,
       1,
+      [kyberFeeHandler.address],
+      [ERC20RewartToken.address],
       {
         from: poolMasterOwner,
       }

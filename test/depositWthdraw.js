@@ -1,5 +1,8 @@
 const KyberPoolMaster = artifacts.require('KyberPoolMaster');
 const KyberDao = artifacts.require('KyberDaoHandleCurrentEpoch');
+const KyberFeeHandler = artifacts.require(
+  'KyberFeeHandlerWithClaimStakerReward'
+);
 
 // Mocks
 const TestToken = artifacts.require('Token.sol');
@@ -59,12 +62,15 @@ contract(
       );
 
       kyberDao = await KyberDao.new(kncToken.address, stakingContract.address);
+      const kyberFeeHandler = await KyberFeeHandler.new(kyberDao.address);
+      const ERC20RewartToken = await TestToken.new('Reward Token A', 'RTA', 18);
 
       poolMaster = await KyberPoolMaster.new(
         kyberDao.address,
-        NO_ZERO_ADDRESS,
         2,
         1,
+        [kyberFeeHandler.address],
+        [ERC20RewartToken.address],
         {
           from: poolMasterOwner,
         }

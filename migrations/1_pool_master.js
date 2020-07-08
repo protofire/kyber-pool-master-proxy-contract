@@ -1,18 +1,21 @@
 const KyberPoolMaster = artifacts.require('KyberPoolMaster');
 
-const KYBER_DAO_ADDRESS = process.env.KYBER_DAO_ADDRESS;
-const KYBER_FEE_HANDLER_ADDRESS = process.env.KYBER_FEE_HANDLER_ADDRESS;
-const EPOCH_NOTICE = process.env.EPOCH_NOTICE;
-const INITIAL_DELEGATION_FEE = process.env.INITIAL_DELEGATION_FEE;
-
 module.exports = async function (deployer) {
   if (process.env.NODE_ENV !== 'test') {
+    const configs = require('../configs.json');
+    const KYBER_DAO_ADDRESS = configs.KYBER_DAO_ADDRESS;
+    const KYBER_FEE_HANDLERS_ADDRESS = configs.KYBER_FEE_HANDLERS_ADDRESS;
+    const REWARD_TOKENS = configs.REWARD_TOKENS;
+    const EPOCH_NOTICE = configs.EPOCH_NOTICE;
+    const INITIAL_DELEGATION_FEE = configs.INITIAL_DELEGATION_FEE;
+
     await deployer.deploy(
       KyberPoolMaster,
       KYBER_DAO_ADDRESS,
-      KYBER_FEE_HANDLER_ADDRESS,
       EPOCH_NOTICE,
-      INITIAL_DELEGATION_FEE
+      INITIAL_DELEGATION_FEE,
+      KYBER_FEE_HANDLERS_ADDRESS,
+      REWARD_TOKENS
     );
   }
 };

@@ -4,7 +4,7 @@ const KyberDao = artifacts.require('KyberDaoHandleCurrentEpoch');
 const {expect, assert} = require('chai');
 const {expectEvent, expectRevert} = require('@openzeppelin/test-helpers');
 
-const NO_ZERO_ADDRESS = '0x0000000000000000000000000000000000000001';
+const {NO_ZERO_ADDRESS, ZERO_ADDRESS} = require('./helper.js');
 
 let kyberPoolMaster;
 let kyberDao;
@@ -25,9 +25,10 @@ contract('KyberPoolMaster delegationFee', async (accounts) => {
 
     kyberPoolMaster = await KyberPoolMaster.new(
       kyberDao.address,
-      NO_ZERO_ADDRESS,
       2,
       1,
+      [NO_ZERO_ADDRESS],
+      [ZERO_ADDRESS],
       {
         from: poolMasterOwner,
       }

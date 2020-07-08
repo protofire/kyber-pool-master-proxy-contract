@@ -12,6 +12,7 @@ const {
   ZERO_ADDRESS,
   NO_ZERO_ADDRESS,
   MAX_DELEGATION_FEE,
+  ETH_TOKEN_ADDRESS,
 } = require('./helper.js');
 
 let kyberPoolMaster;
@@ -29,21 +30,26 @@ contract('KyberPoolMaster deployment', async (accounts) => {
   describe('deployment', () => {
     it('should not allow to deploy a KyberPoolMaster zero address kyberDao', async () => {
       await expectRevert(
-        KyberPoolMaster.new(ZERO_ADDRESS, ZERO_ADDRESS, 0, 0),
+        KyberPoolMaster.new(
+          ZERO_ADDRESS,
+          0,
+          0,
+          [NO_ZERO_ADDRESS],
+          [ZERO_ADDRESS]
+        ),
         'ctor: kyberDao is missing'
-      );
-    });
-
-    it('should not allow to deploy a KyberPoolMaster zero address kyberFeeHandler', async () => {
-      await expectRevert(
-        KyberPoolMaster.new(NO_ZERO_ADDRESS, ZERO_ADDRESS, 0, 0),
-        'ctor: kyberFeeHandler is missing'
       );
     });
 
     it('should not allow to deploy a KyberPoolMaster with epochNotice lower than the minimum', async () => {
       await expectRevert(
-        KyberPoolMaster.new(NO_ZERO_ADDRESS, NO_ZERO_ADDRESS, 0, 0),
+        KyberPoolMaster.new(
+          NO_ZERO_ADDRESS,
+          0,
+          0,
+          [NO_ZERO_ADDRESS],
+          [ZERO_ADDRESS]
+        ),
         'ctor: Epoch Notice too low.'
       );
     });
@@ -52,24 +58,95 @@ contract('KyberPoolMaster deployment', async (accounts) => {
       await expectRevert(
         KyberPoolMaster.new(
           NO_ZERO_ADDRESS,
-          NO_ZERO_ADDRESS,
           1,
-          MAX_DELEGATION_FEE + 1
+          MAX_DELEGATION_FEE + 1,
+          [NO_ZERO_ADDRESS],
+          [ZERO_ADDRESS]
         ),
         'ctor: Delegation Fee greater than 100%'
       );
     });
 
-    it('should set the right parameters', async () => {
+    it('should not allow to deploy a KyberPoolMaster without at least', async () => {
+      await expectRevert(
+        KyberPoolMaster.new(NO_ZERO_ADDRESS, 1, 1, [], [ZERO_ADDRESS]),
+        'ctor: at least one _kyberFeeHandlers require'
+      );
+    });
+
+    it('should not allow to deploy a KyberPoolMaster when feeHandlers and rewardToken are not even', async () => {
+      const kyberFeeHandler1 = await KyberFeeHandler.new(NO_ZERO_ADDRESS);
+      const kyberFeeHandler2 = await KyberFeeHandler.new(NO_ZERO_ADDRESS);
+      const ERC20RewartTokenA = await TestToken.new(
+        'Reward Token A',
+        'RTA',
+        18
+      );
+      await expectRevert(
+        KyberPoolMaster.new(
+          NO_ZERO_ADDRESS,
+          1,
+          1,
+          [kyberFeeHandler1.address, kyberFeeHandler2.address],
+          [ERC20RewartTokenA.address]
+        ),
+        'ctor: _kyberFeeHandlers and _rewardTokens uneven'
+      );
+      await expectRevert(
+        KyberPoolMaster.new(
+          NO_ZERO_ADDRESS,
+          1,
+          1,
+          [kyberFeeHandler1.address],
+          [ERC20RewartTokenA.address, ERC20RewartTokenA.address]
+        ),
+        'ctor: _kyberFeeHandlers and _rewardTokens uneven'
+      );
+    });
+
+    it('should not allow to deploy a KyberPoolMaster with ZERO_ADDRESS feeHandler', async () => {
+      await expectRevert.unspecified(
+        KyberPoolMaster.new(
+          NO_ZERO_ADDRESS,
+          1,
+          1,
+          [ZERO_ADDRESS],
+          [NO_ZERO_ADDRESS]
+        )
+      );
+    });
+
+    it('should not allow to deploy a KyberPoolMaster with repeated feeHandler', async () => {
+      const kyberFeeHandler1 = await KyberFeeHandler.new(NO_ZERO_ADDRESS);
+      const ERC20RewartTokenA = await TestToken.new(
+        'Reward Token A',
+        'RTA',
+        18
+      );
+      await expectRevert.unspecified(
+        KyberPoolMaster.new(
+          NO_ZERO_ADDRESS,
+          1,
+          1,
+          [kyberFeeHandler1.address, kyberFeeHandler1.address],
+          [ERC20RewartTokenA.address, ERC20RewartTokenA.address]
+        )
+      );
+    });
+
+    it('should deploy a KyberPoolMaster and set the right parameters', async () => {
       const kyberDao = await KyberDao.new(NO_ZERO_ADDRESS, NO_ZERO_ADDRESS);
 
       const kyberFeeHandler = await KyberFeeHandler.new(kyberDao.address);
 
+      const ERC20RewartToken = await TestToken.new('Reward Token A', 'RTA', 18);
+
       kyberPoolMaster = await KyberPoolMaster.new(
         kyberDao.address,
-        kyberFeeHandler.address,
         2,
         1,
+        [kyberFeeHandler.address],
+        [ERC20RewartToken.address],
         {
           from: poolMasterOwner,
         }
@@ -84,8 +161,13 @@ contract('KyberPoolMaster deployment', async (accounts) => {
       const kyberStakingAddress = await kyberPoolMaster.kyberStaking();
       expect(kyberStakingAddress).to.equal(NO_ZERO_ADDRESS);
 
-      const kyberFeeHandlerAddress = await kyberPoolMaster.kyberFeeHandler();
+      const kyberFeeHandlerAddress = await kyberPoolMaster.feeHandlersList(0);
       expect(kyberFeeHandlerAddress).to.equal(kyberFeeHandler.address);
+
+      const rewardToken = await kyberPoolMaster.rewardTokenByFeeHandler(
+        kyberFeeHandler.address
+      );
+      expect(rewardToken).to.equal(ERC20RewartToken.address);
 
       const epochNotice = await kyberPoolMaster.epochNotice();
       expect(epochNotice.toString()).to.equal('2');
@@ -96,21 +178,26 @@ contract('KyberPoolMaster deployment', async (accounts) => {
       expect(delegationFee.applied).to.equal(true);
     });
 
-    it('poolMaster should be able to claim ERC20 tokens', async () => {
-      await erc20.transfer(kyberPoolMaster.address, mulPrecision(10), {
-        from: mike,
-      });
-      let mikeBalance = await erc20.balanceOf(mike);
-      expect(mikeBalance.toString()).to.equal(
-        mulPrecision(1000000).sub(mulPrecision(10)).toString()
+    it('should deploy a KyberPoolMaster and set ETH as reward token when ZERO_ADDRESS is used', async () => {
+      const kyberDao = await KyberDao.new(NO_ZERO_ADDRESS, NO_ZERO_ADDRESS);
+
+      const kyberFeeHandler = await KyberFeeHandler.new(kyberDao.address);
+
+      kyberPoolMaster = await KyberPoolMaster.new(
+        kyberDao.address,
+        2,
+        1,
+        [kyberFeeHandler.address],
+        [ZERO_ADDRESS],
+        {
+          from: poolMasterOwner,
+        }
       );
 
-      await kyberPoolMaster.claimErc20Tokens(erc20.address, mike, {
-        from: poolMasterOwner,
-      });
-
-      mikeBalance = await erc20.balanceOf(mike);
-      expect(mikeBalance.toString()).to.equal(mulPrecision(1000000).toString());
+      const rewardToken = await kyberPoolMaster.rewardTokenByFeeHandler(
+        kyberFeeHandler.address
+      );
+      expect(rewardToken).to.equal(ETH_TOKEN_ADDRESS);
     });
   });
 
@@ -119,12 +206,14 @@ contract('KyberPoolMaster deployment', async (accounts) => {
       const kyberDao = await KyberDao.new(NO_ZERO_ADDRESS, NO_ZERO_ADDRESS);
 
       const kyberFeeHandler = await KyberFeeHandler.new(kyberDao.address);
+      const ERC20RewartToken = await TestToken.new('Reward Token A', 'RTA', 18);
 
       kyberPoolMaster = await KyberPoolMaster.new(
         kyberDao.address,
-        kyberFeeHandler.address,
         2,
         1,
+        [kyberFeeHandler.address],
+        [ERC20RewartToken.address],
         {
           from: poolMasterOwner,
         }

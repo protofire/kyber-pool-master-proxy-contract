@@ -15,7 +15,7 @@ const {expect} = require('chai');
 const {expectEvent, balance, ether, BN} = require('@openzeppelin/test-helpers');
 
 const Reverter = require('../../test/utils/reverter');
-const {NO_ZERO_ADDRESS} = require('../../test/helper.js');
+const {NO_ZERO_ADDRESS, ZERO_ADDRESS} = require('../../test/helper.js');
 
 let kyberPoolMaster;
 let kyberDao;
@@ -106,12 +106,14 @@ contract('KyberPoolMaster claiming', async (accounts) => {
 
       const poolMasterOwnerBalance = await balance.current(poolMasterOwner);
 
-      const receipt = await kyberPoolMaster.claimRewardsMaster(epoch, {
+      const receipt = await kyberPoolMaster.claimRewardsMaster([epoch], {
         from: mike,
       });
       expectEvent(receipt, 'MasterClaimReward', {
         epoch: epoch.toString(),
+        feeHandler: kyberFeeHandler.address,
         poolMaster: poolMasterOwner,
+        rewardToken: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
         totalRewards: unclaimReward.toString(),
         feeApplied: fee,
         feeAmount: feeAmount.toString(),
@@ -127,12 +129,18 @@ contract('KyberPoolMaster claiming', async (accounts) => {
         expectedBalance.toString()
       );
 
-      const epochPoolMembersShare = await kyberPoolMaster.memberRewards(epoch);
+      const epochPoolMembersShare = await kyberPoolMaster.memberRewards(
+        epoch,
+        kyberFeeHandler.address
+      );
       expect(epochPoolMembersShare.totalRewards.toString()).to.equal(
         poolMemberShare.toString()
       );
 
-      const claimedPoolReward = await kyberPoolMaster.claimedPoolReward(epoch);
+      const claimedPoolReward = await kyberPoolMaster.claimedPoolReward(
+        epoch,
+        kyberFeeHandler.address
+      );
       expect(claimedPoolReward).to.equal(true);
     };
 
@@ -152,9 +160,10 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       );
       kyberPoolMaster = await KyberPoolMaster.new(
         kyberDao.address,
-        kyberFeeHandler.address,
         2,
         1,
+        [kyberFeeHandler.address],
+        [ZERO_ADDRESS],
         {
           from: poolMasterOwner,
         }
