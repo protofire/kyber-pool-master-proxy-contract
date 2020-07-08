@@ -661,13 +661,33 @@ contract KyberPoolMaster is Ownable {
     }
 
     /**
-     * @dev PoolMember Claims rewards for a given group of epochs in all feeHandlers.
+     * @dev PoolMember claims rewards for a given group of epochs in all feeHandlers.
      *      It will transfer rewards where epoch->feeHandler has been claimed by the pool and not yet by the member.
      *      This contract will keep locked remainings from rounding at a wei level.
      * @param _epochGroup An array of epochs for which rewards are being claimed
      */
-    function claimRewardMember(uint256[] memory _epochGroup) public {
-        address poolMember = msg.sender;
+    function claimRewardsMember(uint256[] memory _epochGroup) public {
+        _claimRewardsMember(_epochGroup, msg.sender);
+    }
+
+    /**
+     * @dev Someone claims rewards for a PoolMember in a given group of epochs in all feeHandlers.
+     *      It will transfer rewards where epoch->feeHandler has been claimed by the pool and not yet by the member.
+     *      This contract will keep locked remainings from rounding at a wei level.
+     * @param _epochGroup An array of epochs for which rewards are being claimed
+     * @param _poolMember PoolMember address to claim rewards for, if not provided `msg.sender` will be used
+     */
+    function claimRewardsMember(
+        uint256[] memory _epochGroup,
+        address _poolMember
+    ) public {
+        _claimRewardsMember(_epochGroup, _poolMember);
+    }
+
+    function _claimRewardsMember(
+        uint256[] memory _epochGroup,
+        address _poolMember
+    ) internal {
         IERC20[] memory tokensWithRewards = new IERC20[](
             feeHandlersList.length
         );
@@ -680,10 +700,10 @@ contract KyberPoolMaster is Ownable {
             for (uint256 i = 0; i < feeHandlersList.length; i++) {
                 if (
                     claimedPoolReward[_epoch][feeHandlersList[i]] &&
-                    !claimedDelegateReward[_epoch][poolMember][feeHandlersList[i]]
+                    !claimedDelegateReward[_epoch][_poolMember][feeHandlersList[i]]
                 ) {
                     uint256 poolMemberShare = getUnclaimedRewardsMember(
-                        poolMember,
+                        _poolMember,
                         _epoch,
                         feeHandlersList[i]
                     );
@@ -708,11 +728,11 @@ contract KyberPoolMaster is Ownable {
                                 poolMemberShare
                             );
                         }
-                        claimedDelegateReward[_epoch][poolMember][feeHandlersList[i]] = true;
+                        claimedDelegateReward[_epoch][_poolMember][feeHandlersList[i]] = true;
 
                         emit MemberClaimReward(
                             _epoch,
-                            poolMember,
+                            _poolMember,
                             feeHandlersList[i],
                             rewardToken,
                             poolMemberShare
@@ -722,17 +742,17 @@ contract KyberPoolMaster is Ownable {
             }
         }
 
-        // distribute poolMember rewards share
+        // distribute _poolMember rewards share
         for (uint256 k = 0; k < tokensWithRewardsLength; k++) {
             if (tokensWithRewards[k] == ETH_TOKEN_ADDRESS) {
                 require(
-                    payable(poolMember).send(accruedByToken[k]),
+                    payable(_poolMember).send(accruedByToken[k]),
                     "cRMember: poolMember share transfer failed"
                 );
             } else {
                 SafeERC20.safeTransfer(
                     tokensWithRewards[k],
-                    poolMember,
+                    _poolMember,
                     accruedByToken[k]
                 );
             }
