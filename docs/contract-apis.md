@@ -438,8 +438,8 @@ event **`MasterClaimReward`**(uint256 indexed epoch, address indexed poolMaster,
 | Parameter | Type | Description |
 | ---------- |:-------:|:-------------------:|
 | `epoch` | uint256 | an epoch being claimed |
-| `poolMaster` | uint256 |  a pool master address |
-| `feeHandler` | address |  a fee handler address |
+| `poolMaster` | uint256 |  Pool Master's address |
+| `feeHandler` | address |  feeHandler's address |
 | `rewardToken` | IERC20 |  a reward token |
 | `totalRewards` | uint256 | total rewards obteined by the pool |
 | `feeApplied` | uint256 | a fee applied to the claim |
@@ -461,4 +461,4 @@ Emmited whenever `addFeeHandler` is called successfully
 event **`RemoveFeeHandler`**(address indexed feeHandler)
 | Parameter | Type | Description |
 | ---------- |:-------:|:-------------------:|
-| `feeHandler` | address |  fee handler's address |
+| `feeHandler` | address |  feeHandler's address |
