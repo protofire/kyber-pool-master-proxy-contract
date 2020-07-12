@@ -669,7 +669,7 @@ contract KyberPoolMaster is Ownable {
      *      It will transfer rewards where epoch->feeHandler has been claimed by the pool and not yet by the member.
      *      This contract will keep locked remainings from rounding at a wei level.
      * @param _epochGroup An array of epochs for which rewards are being claimed
-     * @param _poolMember PoolMember address to claim rewards for, if not provided `msg.sender` will be used
+     * @param _poolMember PoolMember address to claim rewards for
      */
     function claimRewardsMember(
         uint256[] memory _epochGroup,
