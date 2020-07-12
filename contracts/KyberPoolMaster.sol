@@ -644,10 +644,48 @@ contract KyberPoolMaster is Ownable {
         returns (uint256[] memory)
     {
         uint256 currentEpoch = kyberDao.getCurrentEpochNumber();
-        uint256 maxEpochNumber = currentEpoch.sub(firstEpoch).add(1);
+        return
+            _getAllEpochWithUnclaimedRewardsMember(
+                _poolMember,
+                firstEpoch,
+                currentEpoch
+            );
+    }
+
+    /**
+     * @dev Queries the epochs with at least one feeHandler paying rewards, for a the poolMember
+     * @param _poolMember address of pool member
+     * @param _fromEpoch initial epoch parameter
+     * @param _toEpoch end epoch parameter
+     */
+    function getAllEpochWithUnclaimedRewardsMember(
+        address _poolMember,
+        uint256 _fromEpoch,
+        uint256 _toEpoch
+    ) external view returns (uint256[] memory) {
+        return
+            _getAllEpochWithUnclaimedRewardsMember(
+                _poolMember,
+                _fromEpoch,
+                _toEpoch
+            );
+    }
+
+    /**
+     * @dev Queries the epochs with at least one feeHandler paying rewards, for a the poolMember
+     * @param _poolMember address of pool member
+     * @param _fromEpoch initial epoch parameter
+     * @param _toEpoch end epoch parameter
+     */
+    function _getAllEpochWithUnclaimedRewardsMember(
+        address _poolMember,
+        uint256 _fromEpoch,
+        uint256 _toEpoch
+    ) internal view returns (uint256[] memory) {
+        uint256 maxEpochNumber = _toEpoch.sub(_fromEpoch).add(1);
         uint256[] memory epochsWithRewards = new uint256[](maxEpochNumber);
         uint256 epochCounter = 0;
-        for (uint256 epoch = firstEpoch; epoch <= currentEpoch; epoch++) {
+        for (uint256 epoch = _fromEpoch; epoch <= _toEpoch; epoch++) {
             for (uint256 i = 0; i < feeHandlersList.length; i++) {
                 uint256 unclaimed = getUnclaimedRewardsMember(
                     _poolMember,
