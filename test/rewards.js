@@ -308,7 +308,7 @@ contract('KyberPoolMaster claiming', async (accounts) => {
           kyberFeeHandler4.address,
         ],
         [
-          ZERO_ADDRESS,
+          ETH_TOKEN_ADDRESS,
           rewardTokenA.address,
           rewardTokenB.address,
           rewardTokenB.address,
@@ -1270,7 +1270,7 @@ contract('KyberPoolMaster claiming', async (accounts) => {
           kyberFeeHandler4.address,
         ],
         [
-          ZERO_ADDRESS,
+          ETH_TOKEN_ADDRESS,
           rewardTokenA.address,
           rewardTokenB.address,
           rewardTokenB.address,

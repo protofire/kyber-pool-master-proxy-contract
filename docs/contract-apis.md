@@ -106,7 +106,7 @@ function **`addFeeHandler`**(address _feeHandler, IERC20 _rewardToken) external 
 | Parameter | Type | Description |
 | ---------- |:-------:|:-------------------:|
 | `_feeHandler` | address | the address of the new FeeHandler |
-| `_rewardToken` | IERC20 | the address of a ERC20 token or `0x0000000000000000000000000000000000000000` if reward is in ETH |
+| `_rewardToken` | IERC20 | the address of a ERC20 token or `0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE` if reward is in ETH |
 
 #### Example
 Add FEE_HANDLER_ADDRESS with DAI as reward token.

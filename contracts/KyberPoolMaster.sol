@@ -160,10 +160,7 @@ contract KyberPoolMaster is Ownable {
             );
 
             feeHandlersList.push(_kyberFeeHandlers[i]);
-            rewardTokenByFeeHandler[_kyberFeeHandlers[i]] = _rewardTokens[i] ==
-                IERC20(address(0))
-                ? ETH_TOKEN_ADDRESS
-                : _rewardTokens[i];
+            rewardTokenByFeeHandler[_kyberFeeHandlers[i]] = _rewardTokens[i];
 
             emit AddFeeHandler(
                 _kyberFeeHandlers[i],
@@ -194,10 +191,7 @@ contract KyberPoolMaster is Ownable {
         );
 
         feeHandlersList.push(_feeHandler);
-        rewardTokenByFeeHandler[_feeHandler] = _rewardToken ==
-            IERC20(address(0))
-            ? ETH_TOKEN_ADDRESS
-            : _rewardToken;
+        rewardTokenByFeeHandler[_feeHandler] = _rewardToken;
 
         emit AddFeeHandler(_feeHandler, rewardTokenByFeeHandler[_feeHandler]);
     }

@@ -61,7 +61,7 @@ contract('KyberPoolMaster FeeHandlers', async (accounts) => {
       2,
       1,
       [FEE_HANDLER_F],
-      [ZERO_ADDRESS],
+      [ETH_TOKEN_ADDRESS],
       {
         from: poolMasterOwner,
       }
@@ -133,12 +133,12 @@ contract('KyberPoolMaster FeeHandlers', async (accounts) => {
       );
     });
 
-    it('should add a new fee handler for ETH when second argument is ZERO_ADDRESS', async () => {
+    it('should add a new fee handler for ETH when second argument is ETH_TOKEN_ADDRESS', async () => {
       const initialFeeHandlersListLength = await kyberPoolMaster.feeHandlersListLength();
 
       const receipt = await kyberPoolMaster.addFeeHandler(
         FEE_HANDLER_B,
-        ZERO_ADDRESS,
+        ETH_TOKEN_ADDRESS,
         {
           from: poolMasterOwner,
         }
@@ -176,10 +176,10 @@ contract('KyberPoolMaster FeeHandlers', async (accounts) => {
       await kyberPoolMaster.addFeeHandler(FEE_HANDLER_B, REWARD_TOKEN_2, {
         from: poolMasterOwner,
       });
-      await kyberPoolMaster.addFeeHandler(FEE_HANDLER_C, ZERO_ADDRESS, {
+      await kyberPoolMaster.addFeeHandler(FEE_HANDLER_C, ETH_TOKEN_ADDRESS, {
         from: poolMasterOwner,
       });
-      await kyberPoolMaster.addFeeHandler(FEE_HANDLER_D, ZERO_ADDRESS, {
+      await kyberPoolMaster.addFeeHandler(FEE_HANDLER_D, ETH_TOKEN_ADDRESS, {
         from: poolMasterOwner,
       });
 
