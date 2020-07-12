@@ -561,11 +561,9 @@ contract KyberPoolMaster is Ownable {
 
         for (uint256 k = 0; k < tokensWithRewardsLength; k++) {
             if (tokensWithRewards[k] == ETH_TOKEN_ADDRESS) {
-                address payable poolMaster = payable(owner());
-                require(
-                    poolMaster.send(accruedByToken[k]),
-                    "cRMaste: poolMaster share transfer failed"
-                );
+                address poolMaster = owner();
+                (bool success, ) = poolMaster.call{value: accruedByToken[k]}("");
+                require(success, "cRMaste: poolMaster share transfer failed");
             } else {
                 SafeERC20.safeTransfer(
                     tokensWithRewards[k],
@@ -745,10 +743,8 @@ contract KyberPoolMaster is Ownable {
         // distribute _poolMember rewards share
         for (uint256 k = 0; k < tokensWithRewardsLength; k++) {
             if (tokensWithRewards[k] == ETH_TOKEN_ADDRESS) {
-                require(
-                    payable(_poolMember).send(accruedByToken[k]),
-                    "cRMember: poolMember share transfer failed"
-                );
+                (bool success, ) = _poolMember.call{value: accruedByToken[k]}("");
+                require(success, "cRMember: poolMember share transfer failed");
             } else {
                 SafeERC20.safeTransfer(
                     tokensWithRewards[k],
