@@ -425,7 +425,7 @@ contract KyberPoolMaster is Ownable {
         returns (uint256[] memory)
     {
         uint256 currentEpoch = kyberDao.getCurrentEpochNumber();
-        uint256 maxEpochNumber = currentEpoch.sub(firstEpoch);
+        uint256 maxEpochNumber = currentEpoch.sub(firstEpoch).add(1);
         uint256[] memory epochsWithRewards = new uint256[](maxEpochNumber);
         uint256 epochCounter = 0;
         for (uint256 epoch = firstEpoch; epoch <= currentEpoch; epoch++) {
@@ -632,7 +632,7 @@ contract KyberPoolMaster is Ownable {
         returns (uint256[] memory)
     {
         uint256 currentEpoch = kyberDao.getCurrentEpochNumber();
-        uint256 maxEpochNumber = currentEpoch.sub(firstEpoch);
+        uint256 maxEpochNumber = currentEpoch.sub(firstEpoch).add(1);
         uint256[] memory epochsWithRewards = new uint256[](maxEpochNumber);
         uint256 epochCounter = 0;
         for (uint256 epoch = firstEpoch; epoch <= currentEpoch; epoch++) {
