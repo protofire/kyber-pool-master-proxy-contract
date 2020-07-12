@@ -698,46 +698,38 @@ contract KyberPoolMaster is Ownable {
             uint256 _epoch = _epochGroup[j];
 
             for (uint256 i = 0; i < feeHandlersList.length; i++) {
-                if (
-                    claimedPoolReward[_epoch][feeHandlersList[i]] &&
-                    !claimedDelegateReward[_epoch][_poolMember][feeHandlersList[i]]
-                ) {
-                    uint256 poolMemberShare = getUnclaimedRewardsMember(
-                        _poolMember,
-                        _epoch,
-                        feeHandlersList[i]
-                    );
+                uint256 poolMemberShare = getUnclaimedRewardsMember(
+                    _poolMember,
+                    _epoch,
+                    feeHandlersList[i]
+                );
 
 
-                        IERC20 rewardToken
-                     = rewardTokenByFeeHandler[feeHandlersList[i]];
+                    IERC20 rewardToken
+                 = rewardTokenByFeeHandler[feeHandlersList[i]];
 
-                    if (poolMemberShare > 0) {
-                        int256 tokenI = findIndex(
-                            tokensWithRewards,
-                            rewardToken
-                        );
-                        if (tokenI < 0) {
-                            tokensWithRewards[tokensWithRewardsLength] = rewardToken;
-                            accruedByToken[tokensWithRewardsLength] = poolMemberShare;
-                            tokensWithRewardsLength++;
-                        } else {
-                            accruedByToken[uint256(
-                                tokenI
-                            )] = accruedByToken[uint256(tokenI)].add(
-                                poolMemberShare
-                            );
-                        }
-                        claimedDelegateReward[_epoch][_poolMember][feeHandlersList[i]] = true;
-
-                        emit MemberClaimReward(
-                            _epoch,
-                            _poolMember,
-                            feeHandlersList[i],
-                            rewardToken,
+                if (poolMemberShare > 0) {
+                    int256 tokenI = findIndex(tokensWithRewards, rewardToken);
+                    if (tokenI < 0) {
+                        tokensWithRewards[tokensWithRewardsLength] = rewardToken;
+                        accruedByToken[tokensWithRewardsLength] = poolMemberShare;
+                        tokensWithRewardsLength++;
+                    } else {
+                        accruedByToken[uint256(
+                            tokenI
+                        )] = accruedByToken[uint256(tokenI)].add(
                             poolMemberShare
                         );
                     }
+                    claimedDelegateReward[_epoch][_poolMember][feeHandlersList[i]] = true;
+
+                    emit MemberClaimReward(
+                        _epoch,
+                        _poolMember,
+                        feeHandlersList[i],
+                        rewardToken,
+                        poolMemberShare
+                    );
                 }
             }
         }
