@@ -6,6 +6,7 @@
     "mark-callable-contracts": "off",
     "check-send-result": "off",
     "compiler-version": ["error", "0.6.6"],
-    "multiple-sends": "off"
+    "multiple-sends": "off",
+    "avoid-low-level-calls": "off"
   }
 }

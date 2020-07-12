@@ -52,7 +52,7 @@
     "lint-staged": "^10.1.7",
     "mathjs": "^6.6.4",
     "prettier": "^2.0.5",
-    "prettier-plugin-solidity": "^1.0.0-alpha.49",
+    "prettier-plugin-solidity": "^1.0.0-alpha.54",
     "solhint": "^3.0.0",
     "solhint-plugin-prettier": "0.0.4",
     "solidity-coverage": "^0.7.5",

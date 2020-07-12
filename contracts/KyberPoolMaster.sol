@@ -9,7 +9,6 @@ import "./interfaces/IExtendedKyberDao.sol";
 import "./interfaces/IExtendedKyberFeeHandler.sol";
 import "./interfaces/IKyberStaking.sol";
 
-
 /**
  * @title Kyber PoolMaster contract
  * @author Protofire
@@ -31,7 +30,8 @@ contract KyberPoolMaster is Ownable {
 
     // Mapping of if staker has claimed reward for Epoch in a feeHandler
     // epoch -> member -> feeHandler -> true | false
-    mapping(uint256 => mapping(address => mapping(address => bool))) public claimedDelegateReward;
+    mapping(uint256 => mapping(address => mapping(address => bool)))
+        public claimedDelegateReward;
 
     // Mapping of if the pool has claimed reward for an epoch in a feeHandler
     // epoch -> feeHandler -> true | false
@@ -562,7 +562,9 @@ contract KyberPoolMaster is Ownable {
         for (uint256 k = 0; k < tokensWithRewardsLength; k++) {
             if (tokensWithRewards[k] == ETH_TOKEN_ADDRESS) {
                 address poolMaster = owner();
-                (bool success, ) = poolMaster.call{value: accruedByToken[k]}("");
+                (bool success, ) = poolMaster.call{value: accruedByToken[k]}(
+                    ""
+                );
                 require(success, "cRMaste: poolMaster share transfer failed");
             } else {
                 SafeERC20.safeTransfer(
@@ -743,7 +745,9 @@ contract KyberPoolMaster is Ownable {
         // distribute _poolMember rewards share
         for (uint256 k = 0; k < tokensWithRewardsLength; k++) {
             if (tokensWithRewards[k] == ETH_TOKEN_ADDRESS) {
-                (bool success, ) = _poolMember.call{value: accruedByToken[k]}("");
+                (bool success, ) = _poolMember.call{value: accruedByToken[k]}(
+                    ""
+                );
                 require(success, "cRMember: poolMember share transfer failed");
             } else {
                 SafeERC20.safeTransfer(

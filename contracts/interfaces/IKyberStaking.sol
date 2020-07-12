@@ -2,7 +2,6 @@ pragma solidity 0.6.6;
 
 import "./IEpochUtils.sol";
 
-
 interface IKyberStaking is IEpochUtils {
     event Delegated(
         address indexed staker,
