@@ -481,94 +481,110 @@ contract KyberPoolMaster is Ownable {
                     rewardInfo.kyberFeeHandler
                 );
 
-                if (unclaimed > 0) {
-                    rewardInfo
-                        .rewardToken = rewardTokenByFeeHandler[feeHandlersList[i]];
-
-                    rewardInfo.kyberFeeHandler.claimStakerReward(
-                        address(this),
-                        _epoch
-                    );
-
-                    rewardInfo.totalRewards = unclaimed;
-
-                    rewardInfo.totalFee = rewardInfo
-                        .totalRewards
-                        .mul(epochDFee.fee)
-                        .div(MAX_DELEGATION_FEE);
-                    rewardInfo.rewardsAfterFee = rewardInfo.totalRewards.sub(
-                        rewardInfo.totalFee
-                    );
-
-                    rewardInfo.poolMembersShare = calculateRewardsShare(
-                        delegatedStake,
-                        stake.add(delegatedStake),
-                        rewardInfo.rewardsAfterFee
-                    );
-                    rewardInfo.poolMasterShare = rewardInfo.totalRewards.sub(
-                        rewardInfo.poolMembersShare
-                    ); // fee + poolMaster stake share
-
-                    claimedPoolReward[_epoch][feeHandlersList[i]] = true;
-                    memberRewards[_epoch][feeHandlersList[i]] = Reward(
-                        rewardInfo.poolMembersShare,
-                        delegatedStake
-                    );
-
-                    int256 tokenI = findIndex(
-                        tokensWithRewards,
-                        rewardInfo.rewardToken
-                    );
-                    if (tokenI < 0) {
-                        tokensWithRewards[tokensWithRewardsLength] = rewardInfo
-                            .rewardToken;
-                        accruedByToken[tokensWithRewardsLength] = rewardInfo
-                            .poolMasterShare;
-                        tokensWithRewardsLength++;
-                    } else {
-                        accruedByToken[uint256(
-                            tokenI
-                        )] = accruedByToken[uint256(tokenI)].add(
-                            rewardInfo.poolMasterShare
-                        );
-                    }
-
-                    if (!epochDFee.applied) {
-                        applyFee(epochDFee);
-                    }
-
-                    if (!successfulClaimByFeeHandler[feeHandlersList[i]]) {
-                        successfulClaimByFeeHandler[feeHandlersList[i]] = true;
-                    }
-
-                    emit MasterClaimReward(
-                        _epoch,
-                        feeHandlersList[i],
-                        payable(owner()),
-                        rewardInfo.rewardToken,
-                        rewardInfo.totalRewards,
-                        epochDFee.fee,
-                        rewardInfo.totalFee,
-                        rewardInfo.poolMasterShare.sub(rewardInfo.totalFee)
-                    );
+                if (unclaimed == 0) {
+                    continue;
                 }
+
+                rewardInfo
+                    .rewardToken = rewardTokenByFeeHandler[feeHandlersList[i]];
+
+                rewardInfo.kyberFeeHandler.claimStakerReward(
+                    address(this),
+                    _epoch
+                );
+
+                rewardInfo.totalRewards = unclaimed;
+
+                rewardInfo.totalFee = rewardInfo
+                    .totalRewards
+                    .mul(epochDFee.fee)
+                    .div(MAX_DELEGATION_FEE);
+                rewardInfo.rewardsAfterFee = rewardInfo.totalRewards.sub(
+                    rewardInfo.totalFee
+                );
+
+                rewardInfo.poolMembersShare = calculateRewardsShare(
+                    delegatedStake,
+                    stake.add(delegatedStake),
+                    rewardInfo.rewardsAfterFee
+                );
+                rewardInfo.poolMasterShare = rewardInfo.totalRewards.sub(
+                    rewardInfo.poolMembersShare
+                ); // fee + poolMaster stake share
+
+                claimedPoolReward[_epoch][feeHandlersList[i]] = true;
+                memberRewards[_epoch][feeHandlersList[i]] = Reward(
+                    rewardInfo.poolMembersShare,
+                    delegatedStake
+                );
+
+                int256 tokenI = findIndex(
+                    tokensWithRewards,
+                    rewardInfo.rewardToken
+                );
+                if (tokenI < 0) {
+                    tokensWithRewards[tokensWithRewardsLength] = rewardInfo
+                        .rewardToken;
+                    accruedByToken[tokensWithRewardsLength] = rewardInfo
+                        .poolMasterShare;
+                    tokensWithRewardsLength++;
+                } else {
+                    accruedByToken[uint256(tokenI)] = accruedByToken[uint256(
+                        tokenI
+                    )]
+                        .add(rewardInfo.poolMasterShare);
+                }
+
+                if (!epochDFee.applied) {
+                    applyFee(epochDFee);
+                }
+
+                if (!successfulClaimByFeeHandler[feeHandlersList[i]]) {
+                    successfulClaimByFeeHandler[feeHandlersList[i]] = true;
+                }
+
+                emit MasterClaimReward(
+                    _epoch,
+                    feeHandlersList[i],
+                    payable(owner()),
+                    rewardInfo.rewardToken,
+                    rewardInfo.totalRewards,
+                    epochDFee.fee,
+                    rewardInfo.totalFee,
+                    rewardInfo.poolMasterShare.sub(rewardInfo.totalFee)
+                );
             }
         }
 
+        address poolMaster = owner();
         for (uint256 k = 0; k < tokensWithRewardsLength; k++) {
-            if (tokensWithRewards[k] == ETH_TOKEN_ADDRESS) {
-                address poolMaster = owner();
-                (bool success, ) = poolMaster.call{value: accruedByToken[k]}(
-                    ""
-                );
-                require(success, "cRMaste: poolMaster share transfer failed");
-            } else {
-                SafeERC20.safeTransfer(
-                    tokensWithRewards[k],
-                    owner(),
-                    accruedByToken[k]
-                );
-            }
+            sendTokens(
+                tokensWithRewards[k],
+                poolMaster,
+                accruedByToken[k],
+                "cRMaste: poolMaster share transfer failed"
+            );
+        }
+    }
+
+    /**
+     * @dev  Helper method to transfer tokens
+     * @param _token address of the token
+     * @param _receiver account that will receive the transfer
+     * @param _value the amount of tokens to transfer
+     * @param _errorMsg error msg in case transfer of native tokens fails
+     */
+    function sendTokens(
+        IERC20 _token,
+        address _receiver,
+        uint256 _value,
+        string memory _errorMsg
+    ) internal {
+        if (_token == ETH_TOKEN_ADDRESS) {
+            (bool success, ) = _receiver.call{value: _value}("");
+            require(success, _errorMsg);
+        } else {
+            SafeERC20.safeTransfer(_token, _receiver, _value);
         }
     }
 
@@ -732,18 +748,12 @@ contract KyberPoolMaster is Ownable {
 
         // distribute _poolMember rewards share
         for (uint256 k = 0; k < tokensWithRewardsLength; k++) {
-            if (tokensWithRewards[k] == ETH_TOKEN_ADDRESS) {
-                (bool success, ) = _poolMember.call{value: accruedByToken[k]}(
-                    ""
-                );
-                require(success, "cRMember: poolMember share transfer failed");
-            } else {
-                SafeERC20.safeTransfer(
-                    tokensWithRewards[k],
-                    _poolMember,
-                    accruedByToken[k]
-                );
-            }
+            sendTokens(
+                tokensWithRewards[k],
+                _poolMember,
+                accruedByToken[k],
+                "cRMember: poolMember share transfer failed"
+            );
         }
     }
 
