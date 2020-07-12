@@ -720,29 +720,30 @@ contract KyberPoolMaster is Ownable {
                     IERC20 rewardToken
                  = rewardTokenByFeeHandler[feeHandlersList[i]];
 
-                if (poolMemberShare > 0) {
-                    int256 tokenI = findIndex(tokensWithRewards, rewardToken);
-                    if (tokenI < 0) {
-                        tokensWithRewards[tokensWithRewardsLength] = rewardToken;
-                        accruedByToken[tokensWithRewardsLength] = poolMemberShare;
-                        tokensWithRewardsLength++;
-                    } else {
-                        accruedByToken[uint256(
-                            tokenI
-                        )] = accruedByToken[uint256(tokenI)].add(
-                            poolMemberShare
-                        );
-                    }
-                    claimedDelegateReward[_epoch][_poolMember][feeHandlersList[i]] = true;
-
-                    emit MemberClaimReward(
-                        _epoch,
-                        _poolMember,
-                        feeHandlersList[i],
-                        rewardToken,
-                        poolMemberShare
-                    );
+                if (poolMemberShare == 0) {
+                    continue;
                 }
+
+                int256 tokenI = findIndex(tokensWithRewards, rewardToken);
+                if (tokenI < 0) {
+                    tokensWithRewards[tokensWithRewardsLength] = rewardToken;
+                    accruedByToken[tokensWithRewardsLength] = poolMemberShare;
+                    tokensWithRewardsLength++;
+                } else {
+                    accruedByToken[uint256(tokenI)] = accruedByToken[uint256(
+                        tokenI
+                    )]
+                        .add(poolMemberShare);
+                }
+                claimedDelegateReward[_epoch][_poolMember][feeHandlersList[i]] = true;
+
+                emit MemberClaimReward(
+                    _epoch,
+                    _poolMember,
+                    feeHandlersList[i],
+                    rewardToken,
+                    poolMemberShare
+                );
             }
         }
 
