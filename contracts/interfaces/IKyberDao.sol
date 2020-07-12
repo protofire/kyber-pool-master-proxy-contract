@@ -2,7 +2,6 @@ pragma solidity 0.6.6;
 
 import "./IEpochUtils.sol";
 
-
 interface IKyberDao is IEpochUtils {
     event Voted(
         address indexed staker,

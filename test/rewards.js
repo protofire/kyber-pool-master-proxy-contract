@@ -308,7 +308,7 @@ contract('KyberPoolMaster claiming', async (accounts) => {
           kyberFeeHandler4.address,
         ],
         [
-          ZERO_ADDRESS,
+          ETH_TOKEN_ADDRESS,
           rewardTokenA.address,
           rewardTokenB.address,
           rewardTokenB.address,
@@ -1222,6 +1222,32 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       );
       expect(JSON.stringify(unclaimedEpochs)).to.equal('["1","3","5"]');
     });
+
+    it('should return all epochs with pending to claim rewards with custom from and end epochs', async () => {
+      await kyberDao.setCurrentEpochNumber(7);
+
+      await kyberPoolMaster.setClaimedPoolReward(1, kyberFeeHandler.address);
+      await kyberPoolMaster.setClaimedPoolReward(2, kyberFeeHandler.address);
+      await kyberPoolMaster.setClaimedPoolReward(3, kyberFeeHandler.address);
+      await kyberPoolMaster.setClaimedPoolReward(4, kyberFeeHandler.address);
+      await kyberPoolMaster.setClaimedPoolReward(5, kyberFeeHandler.address);
+      await kyberPoolMaster.setClaimedPoolReward(6, kyberFeeHandler.address);
+
+      await kyberStaking.setStakerData(1, mike, 1, 0, kyberPoolMaster.address);
+      await kyberStaking.setStakerData(3, mike, 1, 0, kyberPoolMaster.address);
+      await kyberStaking.setStakerData(5, mike, 1, 0, kyberPoolMaster.address);
+      await kyberStaking.setStakerData(6, mike, 1, 0, kyberPoolMaster.address);
+
+      await kyberPoolMaster.setMemberRewards(1, kyberFeeHandler.address, 10, 5);
+      await kyberPoolMaster.setMemberRewards(3, kyberFeeHandler.address, 10, 5);
+      await kyberPoolMaster.setMemberRewards(5, kyberFeeHandler.address, 10, 5);
+      await kyberPoolMaster.setMemberRewards(6, kyberFeeHandler.address, 10, 5);
+
+      const unclaimedEpochs = await kyberPoolMaster.methods[
+        'getAllEpochWithUnclaimedRewardsMember(address,uint256,uint256)'
+      ](mike, 3, 5);
+      expect(JSON.stringify(unclaimedEpochs)).to.equal('["3","5"]');
+    });
   });
 
   describe('#claimRewardsMember', () => {
@@ -1270,7 +1296,7 @@ contract('KyberPoolMaster claiming', async (accounts) => {
           kyberFeeHandler4.address,
         ],
         [
-          ZERO_ADDRESS,
+          ETH_TOKEN_ADDRESS,
           rewardTokenA.address,
           rewardTokenB.address,
           rewardTokenB.address,

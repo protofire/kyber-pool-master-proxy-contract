@@ -9,7 +9,6 @@ import "./interfaces/IExtendedKyberDao.sol";
 import "./interfaces/IExtendedKyberFeeHandler.sol";
 import "./interfaces/IKyberStaking.sol";
 
-
 /**
  * @title Kyber PoolMaster contract
  * @author Protofire
@@ -26,12 +25,13 @@ contract KyberPoolMaster is Ownable {
         0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE
     );
 
-    // Number of epochs after which a change on delegationFee is will be applied
-    uint256 public epochNotice;
+    // Number of epochs after which a change on delegationFee will be applied
+    uint256 public immutable epochNotice;
 
     // Mapping of if staker has claimed reward for Epoch in a feeHandler
     // epoch -> member -> feeHandler -> true | false
-    mapping(uint256 => mapping(address => mapping(address => bool))) public claimedDelegateReward;
+    mapping(uint256 => mapping(address => mapping(address => bool)))
+        public claimedDelegateReward;
 
     // Mapping of if the pool has claimed reward for an epoch in a feeHandler
     // epoch -> feeHandler -> true | false
@@ -56,14 +56,14 @@ contract KyberPoolMaster is Ownable {
 
     DFeeData[] public delegationFees;
 
-    IERC20 public kncToken;
-    IExtendedKyberDao public kyberDao;
-    IKyberStaking public kyberStaking;
+    IERC20 public immutable kncToken;
+    IExtendedKyberDao public immutable kyberDao;
+    IKyberStaking public immutable kyberStaking;
 
     address[] public feeHandlersList;
     mapping(address => IERC20) public rewardTokenByFeeHandler;
 
-    uint256 public firstEpoch;
+    uint256 public immutable firstEpoch;
 
     mapping(address => bool) public successfulClaimByFeeHandler;
 
@@ -137,16 +137,18 @@ contract KyberPoolMaster is Ownable {
             "ctor: _kyberFeeHandlers and _rewardTokens uneven"
         );
 
-        kyberDao = IExtendedKyberDao(_kyberDao);
+        IExtendedKyberDao _kyberDaoContract = IExtendedKyberDao(_kyberDao);
+        kyberDao = _kyberDaoContract;
 
-        kncToken = IERC20(kyberDao.kncToken());
-        kyberStaking = IKyberStaking(kyberDao.staking());
+        kncToken = IERC20(_kyberDaoContract.kncToken());
+        kyberStaking = IKyberStaking(_kyberDaoContract.staking());
 
         epochNotice = _epochNotice;
 
-        firstEpoch = kyberDao.getCurrentEpochNumber();
+        uint256 _firstEpoch = _kyberDaoContract.getCurrentEpochNumber();
+        firstEpoch = _firstEpoch;
 
-        delegationFees.push(DFeeData(firstEpoch, _delegationFee, true));
+        delegationFees.push(DFeeData(_firstEpoch, _delegationFee, true));
 
         for (uint256 i = 0; i < _kyberFeeHandlers.length; i++) {
             require(
@@ -160,10 +162,7 @@ contract KyberPoolMaster is Ownable {
             );
 
             feeHandlersList.push(_kyberFeeHandlers[i]);
-            rewardTokenByFeeHandler[_kyberFeeHandlers[i]] = _rewardTokens[i] ==
-                IERC20(address(0))
-                ? ETH_TOKEN_ADDRESS
-                : _rewardTokens[i];
+            rewardTokenByFeeHandler[_kyberFeeHandlers[i]] = _rewardTokens[i];
 
             emit AddFeeHandler(
                 _kyberFeeHandlers[i],
@@ -171,8 +170,8 @@ contract KyberPoolMaster is Ownable {
             );
         }
 
-        emit CommitNewFees(firstEpoch, _delegationFee);
-        emit NewFees(firstEpoch, _delegationFee);
+        emit CommitNewFees(_firstEpoch, _delegationFee);
+        emit NewFees(_firstEpoch, _delegationFee);
     }
 
     /**
@@ -194,10 +193,7 @@ contract KyberPoolMaster is Ownable {
         );
 
         feeHandlersList.push(_feeHandler);
-        rewardTokenByFeeHandler[_feeHandler] = _rewardToken ==
-            IERC20(address(0))
-            ? ETH_TOKEN_ADDRESS
-            : _rewardToken;
+        rewardTokenByFeeHandler[_feeHandler] = _rewardToken;
 
         emit AddFeeHandler(_feeHandler, rewardTokenByFeeHandler[_feeHandler]);
     }
@@ -425,7 +421,7 @@ contract KyberPoolMaster is Ownable {
         returns (uint256[] memory)
     {
         uint256 currentEpoch = kyberDao.getCurrentEpochNumber();
-        uint256 maxEpochNumber = currentEpoch.sub(firstEpoch);
+        uint256 maxEpochNumber = currentEpoch.sub(firstEpoch).add(1);
         uint256[] memory epochsWithRewards = new uint256[](maxEpochNumber);
         uint256 epochCounter = 0;
         for (uint256 epoch = firstEpoch; epoch <= currentEpoch; epoch++) {
@@ -485,94 +481,110 @@ contract KyberPoolMaster is Ownable {
                     rewardInfo.kyberFeeHandler
                 );
 
-                if (unclaimed > 0) {
-                    rewardInfo
-                        .rewardToken = rewardTokenByFeeHandler[feeHandlersList[i]];
-
-                    rewardInfo.kyberFeeHandler.claimStakerReward(
-                        address(this),
-                        _epoch
-                    );
-
-                    rewardInfo.totalRewards = unclaimed;
-
-                    rewardInfo.totalFee = rewardInfo
-                        .totalRewards
-                        .mul(epochDFee.fee)
-                        .div(MAX_DELEGATION_FEE);
-                    rewardInfo.rewardsAfterFee = rewardInfo.totalRewards.sub(
-                        rewardInfo.totalFee
-                    );
-
-                    rewardInfo.poolMembersShare = calculateRewardsShare(
-                        delegatedStake,
-                        stake.add(delegatedStake),
-                        rewardInfo.rewardsAfterFee
-                    );
-                    rewardInfo.poolMasterShare = rewardInfo.totalRewards.sub(
-                        rewardInfo.poolMembersShare
-                    ); // fee + poolMaster stake share
-
-                    claimedPoolReward[_epoch][feeHandlersList[i]] = true;
-                    memberRewards[_epoch][feeHandlersList[i]] = Reward(
-                        rewardInfo.poolMembersShare,
-                        delegatedStake
-                    );
-
-                    int256 tokenI = findIndex(
-                        tokensWithRewards,
-                        rewardInfo.rewardToken
-                    );
-                    if (tokenI < 0) {
-                        tokensWithRewards[tokensWithRewardsLength] = rewardInfo
-                            .rewardToken;
-                        accruedByToken[tokensWithRewardsLength] = rewardInfo
-                            .poolMasterShare;
-                        tokensWithRewardsLength++;
-                    } else {
-                        accruedByToken[uint256(
-                            tokenI
-                        )] = accruedByToken[uint256(tokenI)].add(
-                            rewardInfo.poolMasterShare
-                        );
-                    }
-
-                    if (!epochDFee.applied) {
-                        applyFee(epochDFee);
-                    }
-
-                    if (!successfulClaimByFeeHandler[feeHandlersList[i]]) {
-                        successfulClaimByFeeHandler[feeHandlersList[i]] = true;
-                    }
-
-                    emit MasterClaimReward(
-                        _epoch,
-                        feeHandlersList[i],
-                        payable(owner()),
-                        rewardInfo.rewardToken,
-                        rewardInfo.totalRewards,
-                        epochDFee.fee,
-                        rewardInfo.totalFee,
-                        rewardInfo.poolMasterShare.sub(rewardInfo.totalFee)
-                    );
+                if (unclaimed == 0) {
+                    continue;
                 }
+
+                rewardInfo
+                    .rewardToken = rewardTokenByFeeHandler[feeHandlersList[i]];
+
+                rewardInfo.kyberFeeHandler.claimStakerReward(
+                    address(this),
+                    _epoch
+                );
+
+                rewardInfo.totalRewards = unclaimed;
+
+                rewardInfo.totalFee = rewardInfo
+                    .totalRewards
+                    .mul(epochDFee.fee)
+                    .div(MAX_DELEGATION_FEE);
+                rewardInfo.rewardsAfterFee = rewardInfo.totalRewards.sub(
+                    rewardInfo.totalFee
+                );
+
+                rewardInfo.poolMembersShare = calculateRewardsShare(
+                    delegatedStake,
+                    stake.add(delegatedStake),
+                    rewardInfo.rewardsAfterFee
+                );
+                rewardInfo.poolMasterShare = rewardInfo.totalRewards.sub(
+                    rewardInfo.poolMembersShare
+                ); // fee + poolMaster stake share
+
+                claimedPoolReward[_epoch][feeHandlersList[i]] = true;
+                memberRewards[_epoch][feeHandlersList[i]] = Reward(
+                    rewardInfo.poolMembersShare,
+                    delegatedStake
+                );
+
+                int256 tokenI = findIndex(
+                    tokensWithRewards,
+                    rewardInfo.rewardToken
+                );
+                if (tokenI < 0) {
+                    tokensWithRewards[tokensWithRewardsLength] = rewardInfo
+                        .rewardToken;
+                    accruedByToken[tokensWithRewardsLength] = rewardInfo
+                        .poolMasterShare;
+                    tokensWithRewardsLength++;
+                } else {
+                    accruedByToken[uint256(tokenI)] = accruedByToken[uint256(
+                        tokenI
+                    )]
+                        .add(rewardInfo.poolMasterShare);
+                }
+
+                if (!epochDFee.applied) {
+                    applyFee(epochDFee);
+                }
+
+                if (!successfulClaimByFeeHandler[feeHandlersList[i]]) {
+                    successfulClaimByFeeHandler[feeHandlersList[i]] = true;
+                }
+
+                emit MasterClaimReward(
+                    _epoch,
+                    feeHandlersList[i],
+                    payable(owner()),
+                    rewardInfo.rewardToken,
+                    rewardInfo.totalRewards,
+                    epochDFee.fee,
+                    rewardInfo.totalFee,
+                    rewardInfo.poolMasterShare.sub(rewardInfo.totalFee)
+                );
             }
         }
 
+        address poolMaster = owner();
         for (uint256 k = 0; k < tokensWithRewardsLength; k++) {
-            if (tokensWithRewards[k] == ETH_TOKEN_ADDRESS) {
-                address payable poolMaster = payable(owner());
-                require(
-                    poolMaster.send(accruedByToken[k]),
-                    "cRMaste: poolMaster share transfer failed"
-                );
-            } else {
-                SafeERC20.safeTransfer(
-                    tokensWithRewards[k],
-                    owner(),
-                    accruedByToken[k]
-                );
-            }
+            sendTokens(
+                tokensWithRewards[k],
+                poolMaster,
+                accruedByToken[k],
+                "cRMaste: poolMaster share transfer failed"
+            );
+        }
+    }
+
+    /**
+     * @dev  Helper method to transfer tokens
+     * @param _token address of the token
+     * @param _receiver account that will receive the transfer
+     * @param _value the amount of tokens to transfer
+     * @param _errorMsg error msg in case transfer of native tokens fails
+     */
+    function sendTokens(
+        IERC20 _token,
+        address _receiver,
+        uint256 _value,
+        string memory _errorMsg
+    ) internal {
+        if (_token == ETH_TOKEN_ADDRESS) {
+            (bool success, ) = _receiver.call{value: _value}("");
+            require(success, _errorMsg);
+        } else {
+            SafeERC20.safeTransfer(_token, _receiver, _value);
         }
     }
 
@@ -632,10 +644,48 @@ contract KyberPoolMaster is Ownable {
         returns (uint256[] memory)
     {
         uint256 currentEpoch = kyberDao.getCurrentEpochNumber();
-        uint256 maxEpochNumber = currentEpoch.sub(firstEpoch);
+        return
+            _getAllEpochWithUnclaimedRewardsMember(
+                _poolMember,
+                firstEpoch,
+                currentEpoch
+            );
+    }
+
+    /**
+     * @dev Queries the epochs with at least one feeHandler paying rewards, for a the poolMember
+     * @param _poolMember address of pool member
+     * @param _fromEpoch initial epoch parameter
+     * @param _toEpoch end epoch parameter
+     */
+    function getAllEpochWithUnclaimedRewardsMember(
+        address _poolMember,
+        uint256 _fromEpoch,
+        uint256 _toEpoch
+    ) external view returns (uint256[] memory) {
+        return
+            _getAllEpochWithUnclaimedRewardsMember(
+                _poolMember,
+                _fromEpoch,
+                _toEpoch
+            );
+    }
+
+    /**
+     * @dev Queries the epochs with at least one feeHandler paying rewards, for a the poolMember
+     * @param _poolMember address of pool member
+     * @param _fromEpoch initial epoch parameter
+     * @param _toEpoch end epoch parameter
+     */
+    function _getAllEpochWithUnclaimedRewardsMember(
+        address _poolMember,
+        uint256 _fromEpoch,
+        uint256 _toEpoch
+    ) internal view returns (uint256[] memory) {
+        uint256 maxEpochNumber = _toEpoch.sub(_fromEpoch).add(1);
         uint256[] memory epochsWithRewards = new uint256[](maxEpochNumber);
         uint256 epochCounter = 0;
-        for (uint256 epoch = firstEpoch; epoch <= currentEpoch; epoch++) {
+        for (uint256 epoch = _fromEpoch; epoch <= _toEpoch; epoch++) {
             for (uint256 i = 0; i < feeHandlersList.length; i++) {
                 uint256 unclaimed = getUnclaimedRewardsMember(
                     _poolMember,
@@ -675,7 +725,7 @@ contract KyberPoolMaster is Ownable {
      *      It will transfer rewards where epoch->feeHandler has been claimed by the pool and not yet by the member.
      *      This contract will keep locked remainings from rounding at a wei level.
      * @param _epochGroup An array of epochs for which rewards are being claimed
-     * @param _poolMember PoolMember address to claim rewards for, if not provided `msg.sender` will be used
+     * @param _poolMember PoolMember address to claim rewards for
      */
     function claimRewardsMember(
         uint256[] memory _epochGroup,
@@ -698,64 +748,51 @@ contract KyberPoolMaster is Ownable {
             uint256 _epoch = _epochGroup[j];
 
             for (uint256 i = 0; i < feeHandlersList.length; i++) {
-                if (
-                    claimedPoolReward[_epoch][feeHandlersList[i]] &&
-                    !claimedDelegateReward[_epoch][_poolMember][feeHandlersList[i]]
-                ) {
-                    uint256 poolMemberShare = getUnclaimedRewardsMember(
-                        _poolMember,
-                        _epoch,
-                        feeHandlersList[i]
-                    );
+                uint256 poolMemberShare = getUnclaimedRewardsMember(
+                    _poolMember,
+                    _epoch,
+                    feeHandlersList[i]
+                );
 
 
-                        IERC20 rewardToken
-                     = rewardTokenByFeeHandler[feeHandlersList[i]];
+                    IERC20 rewardToken
+                 = rewardTokenByFeeHandler[feeHandlersList[i]];
 
-                    if (poolMemberShare > 0) {
-                        int256 tokenI = findIndex(
-                            tokensWithRewards,
-                            rewardToken
-                        );
-                        if (tokenI < 0) {
-                            tokensWithRewards[tokensWithRewardsLength] = rewardToken;
-                            accruedByToken[tokensWithRewardsLength] = poolMemberShare;
-                            tokensWithRewardsLength++;
-                        } else {
-                            accruedByToken[uint256(
-                                tokenI
-                            )] = accruedByToken[uint256(tokenI)].add(
-                                poolMemberShare
-                            );
-                        }
-                        claimedDelegateReward[_epoch][_poolMember][feeHandlersList[i]] = true;
-
-                        emit MemberClaimReward(
-                            _epoch,
-                            _poolMember,
-                            feeHandlersList[i],
-                            rewardToken,
-                            poolMemberShare
-                        );
-                    }
+                if (poolMemberShare == 0) {
+                    continue;
                 }
+
+                int256 tokenI = findIndex(tokensWithRewards, rewardToken);
+                if (tokenI < 0) {
+                    tokensWithRewards[tokensWithRewardsLength] = rewardToken;
+                    accruedByToken[tokensWithRewardsLength] = poolMemberShare;
+                    tokensWithRewardsLength++;
+                } else {
+                    accruedByToken[uint256(tokenI)] = accruedByToken[uint256(
+                        tokenI
+                    )]
+                        .add(poolMemberShare);
+                }
+                claimedDelegateReward[_epoch][_poolMember][feeHandlersList[i]] = true;
+
+                emit MemberClaimReward(
+                    _epoch,
+                    _poolMember,
+                    feeHandlersList[i],
+                    rewardToken,
+                    poolMemberShare
+                );
             }
         }
 
         // distribute _poolMember rewards share
         for (uint256 k = 0; k < tokensWithRewardsLength; k++) {
-            if (tokensWithRewards[k] == ETH_TOKEN_ADDRESS) {
-                require(
-                    payable(_poolMember).send(accruedByToken[k]),
-                    "cRMember: poolMember share transfer failed"
-                );
-            } else {
-                SafeERC20.safeTransfer(
-                    tokensWithRewards[k],
-                    _poolMember,
-                    accruedByToken[k]
-                );
-            }
+            sendTokens(
+                tokensWithRewards[k],
+                _poolMember,
+                accruedByToken[k],
+                "cRMember: poolMember share transfer failed"
+            );
         }
     }
 

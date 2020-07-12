@@ -15,7 +15,7 @@ const {expect} = require('chai');
 const {expectEvent, balance, ether, BN} = require('@openzeppelin/test-helpers');
 
 const Reverter = require('../../test/utils/reverter');
-const {NO_ZERO_ADDRESS, ZERO_ADDRESS} = require('../../test/helper.js');
+const {NO_ZERO_ADDRESS, ETH_TOKEN_ADDRESS} = require('../../test/helper.js');
 
 let kyberPoolMaster;
 let kyberDao;
@@ -163,7 +163,7 @@ contract('KyberPoolMaster claiming', async (accounts) => {
         2,
         1,
         [kyberFeeHandler.address],
-        [ZERO_ADDRESS],
+        [ETH_TOKEN_ADDRESS],
         {
           from: poolMasterOwner,
         }
