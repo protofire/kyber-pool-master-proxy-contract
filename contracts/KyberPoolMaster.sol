@@ -25,8 +25,8 @@ contract KyberPoolMaster is Ownable {
         0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE
     );
 
-    // Number of epochs after which a change on delegationFee is will be applied
-    uint256 public epochNotice;
+    // Number of epochs after which a change on delegationFee will be applied
+    uint256 public immutable epochNotice;
 
     // Mapping of if staker has claimed reward for Epoch in a feeHandler
     // epoch -> member -> feeHandler -> true | false
@@ -56,14 +56,14 @@ contract KyberPoolMaster is Ownable {
 
     DFeeData[] public delegationFees;
 
-    IERC20 public kncToken;
-    IExtendedKyberDao public kyberDao;
-    IKyberStaking public kyberStaking;
+    IERC20 public immutable kncToken;
+    IExtendedKyberDao public immutable kyberDao;
+    IKyberStaking public immutable kyberStaking;
 
     address[] public feeHandlersList;
     mapping(address => IERC20) public rewardTokenByFeeHandler;
 
-    uint256 public firstEpoch;
+    uint256 public immutable firstEpoch;
 
     mapping(address => bool) public successfulClaimByFeeHandler;
 
@@ -137,16 +137,18 @@ contract KyberPoolMaster is Ownable {
             "ctor: _kyberFeeHandlers and _rewardTokens uneven"
         );
 
-        kyberDao = IExtendedKyberDao(_kyberDao);
+        IExtendedKyberDao _kyberDaoContract = IExtendedKyberDao(_kyberDao);
+        kyberDao = _kyberDaoContract;
 
-        kncToken = IERC20(kyberDao.kncToken());
-        kyberStaking = IKyberStaking(kyberDao.staking());
+        kncToken = IERC20(_kyberDaoContract.kncToken());
+        kyberStaking = IKyberStaking(_kyberDaoContract.staking());
 
         epochNotice = _epochNotice;
 
-        firstEpoch = kyberDao.getCurrentEpochNumber();
+        uint256 _firstEpoch = _kyberDaoContract.getCurrentEpochNumber();
+        firstEpoch = _firstEpoch;
 
-        delegationFees.push(DFeeData(firstEpoch, _delegationFee, true));
+        delegationFees.push(DFeeData(_firstEpoch, _delegationFee, true));
 
         for (uint256 i = 0; i < _kyberFeeHandlers.length; i++) {
             require(
@@ -168,8 +170,8 @@ contract KyberPoolMaster is Ownable {
             );
         }
 
-        emit CommitNewFees(firstEpoch, _delegationFee);
-        emit NewFees(firstEpoch, _delegationFee);
+        emit CommitNewFees(_firstEpoch, _delegationFee);
+        emit NewFees(_firstEpoch, _delegationFee);
     }
 
     /**
