@@ -449,6 +449,10 @@ contract KyberPoolMaster is Ownable {
                 _epoch
             )];
 
+            if (!epochDFee.applied) {
+                applyFee(epochDFee);
+            }
+
             (uint256 stake, uint256 delegatedStake, ) = kyberStaking
                 .getStakerRawData(address(this), _epoch);
 
@@ -515,10 +519,6 @@ contract KyberPoolMaster is Ownable {
                         tokenI
                     )]
                         .add(rewardInfo.poolMasterShare);
-                }
-
-                if (!epochDFee.applied) {
-                    applyFee(epochDFee);
                 }
 
                 if (!successfulClaimByFeeHandler[feeHandlersList[i]]) {
