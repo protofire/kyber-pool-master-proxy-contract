@@ -325,23 +325,31 @@ contract KyberPoolMaster is Ownable {
 
     /**
      * @dev Gets the id of the delegation fee corresponding to the given epoch
-     * @param epoch for which epoch is querying delegation fee
+     * @param _epoch for which epoch is querying delegation fee
+     * @param _from delegationFees starting index
      */
-    function getEpochDFeeDataId(uint256 epoch)
+    function getEpochDFeeDataId(uint256 _epoch, uint256 _from)
         internal
         view
-        returns (uint256 dFeeDataId)
+        returns (uint256)
     {
-        for (
-            dFeeDataId = delegationFees.length - 1;
-            dFeeDataId > 0;
-            dFeeDataId--
-        ) {
-            DFeeData memory dFeeData = delegationFees[dFeeDataId];
-            if (dFeeData.fromEpoch <= epoch) {
-                break;
+        if (delegationFees[_from].fromEpoch > _epoch) {
+            return _from;
+        }
+
+        uint256 L = _from;
+        uint256 R = delegationFees.length;
+
+        while (L < R) {
+            uint256 m = (L + R).div(2);
+            if (delegationFees[m].fromEpoch > _epoch) {
+                R = m;
+            } else {
+                L = m + 1;
             }
         }
+
+        return R - 1;
     }
 
     /**
@@ -353,7 +361,7 @@ contract KyberPoolMaster is Ownable {
         view
         returns (DFeeData memory epochDFee)
     {
-        epochDFee = delegationFees[getEpochDFeeDataId(epoch)];
+        epochDFee = delegationFees[getEpochDFeeDataId(epoch, 0)];
     }
 
     /**
@@ -446,7 +454,8 @@ contract KyberPoolMaster is Ownable {
         for (uint256 j = 0; j < _epochGroup.length; j++) {
             uint256 _epoch = _epochGroup[j];
             DFeeData storage epochDFee = delegationFees[getEpochDFeeDataId(
-                _epoch
+                _epoch,
+                0
             )];
 
             if (!epochDFee.applied) {

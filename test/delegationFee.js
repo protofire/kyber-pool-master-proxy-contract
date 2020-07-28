@@ -205,20 +205,35 @@ contract('KyberPoolMaster delegationFee', async (accounts) => {
     it('should get the right fees', async () => {
       await kyberDao.setCurrentEpochNumber(14);
 
+      // upper boundary
       const current = await kyberPoolMaster.delegationFee();
       expect(current.fromEpoch.toString()).to.equal('13');
       expect(current.fee.toString()).to.equal('2');
       expect(current.applied).to.equal(false);
 
+      // out upper boundary
+      const outUpperBoundary = await kyberPoolMaster.getEpochDFeeData(15);
+      expect(outUpperBoundary.fromEpoch.toString()).to.equal('13');
+      expect(outUpperBoundary.fee.toString()).to.equal('2');
+      expect(outUpperBoundary.applied).to.equal(false);
+
+      // within
       const epochData = await kyberPoolMaster.getEpochDFeeData(7);
       expect(epochData.fromEpoch.toString()).to.equal('7');
       expect(epochData.fee.toString()).to.equal('1');
       expect(epochData.applied).to.equal(true);
 
-      const firstEpochData = await kyberPoolMaster.getEpochDFeeData(0);
+      // lower boundary
+      const firstEpochData = await kyberPoolMaster.getEpochDFeeData(2);
       expect(firstEpochData.fromEpoch.toString()).to.equal('2');
       expect(firstEpochData.fee.toString()).to.equal('1');
       expect(firstEpochData.applied).to.equal(true);
+
+      // out lower boundary
+      const outLowerBoundary = await kyberPoolMaster.getEpochDFeeData(0);
+      expect(outLowerBoundary.fromEpoch.toString()).to.equal('2');
+      expect(outLowerBoundary.fee.toString()).to.equal('1');
+      expect(outLowerBoundary.applied).to.equal(true);
     });
   });
 });
