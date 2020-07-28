@@ -33,17 +33,13 @@ contract KyberPoolMaster is Ownable {
     mapping(uint256 => mapping(address => mapping(address => bool)))
         public claimedDelegateReward;
 
-    // Mapping of if the pool has claimed reward for an epoch in a feeHandler
-    // epoch -> feeHandler -> true | false
-    mapping(uint256 => mapping(address => bool)) public claimedPoolReward;
-
-    // Amount of rewards owed to poolMembers for an epoch
-    struct Reward {
+    struct Claim {
+        bool claimedByPool;
         uint256 totalRewards;
         uint256 totalStaked;
     }
-    //epoch -> feeHandler -> reward
-    mapping(uint256 => mapping(address => Reward)) public memberRewards;
+    //epoch -> feeHandler -> Claim
+    mapping(uint256 => mapping(address => Claim)) public epochFeeHandlerClaims;
 
     // Fee charged by poolMasters to poolMembers for services
     // Denominated in 1e4 units
@@ -394,7 +390,7 @@ contract KyberPoolMaster is Ownable {
         uint256 _epoch,
         IExtendedKyberFeeHandler _feeHandler
     ) public view returns (uint256) {
-        if (claimedPoolReward[_epoch][address(_feeHandler)]) {
+        if (epochFeeHandlerClaims[_epoch][address(_feeHandler)].claimedByPool) {
             return 0;
         }
 
@@ -512,8 +508,8 @@ contract KyberPoolMaster is Ownable {
                     rewardInfo.poolMembersShare
                 ); // fee + poolMaster stake share
 
-                claimedPoolReward[_epoch][feeHandlersList[i]] = true;
-                memberRewards[_epoch][feeHandlersList[i]] = Reward(
+                epochFeeHandlerClaims[_epoch][feeHandlersList[i]] = Claim(
+                    true,
                     rewardInfo.poolMembersShare,
                     delegatedStake
                 );
@@ -603,7 +599,9 @@ contract KyberPoolMaster is Ownable {
         uint256 _epoch,
         address _feeHandler
     ) public view returns (uint256) {
-        if (!claimedPoolReward[_epoch][_feeHandler]) {
+        if (
+            !epochFeeHandlerClaims[_epoch][address(_feeHandler)].claimedByPool
+        ) {
             return 0;
         }
 
@@ -624,7 +622,9 @@ contract KyberPoolMaster is Ownable {
             return 0;
         }
 
-        Reward memory rewardForEpoch = memberRewards[_epoch][_feeHandler];
+
+            Claim memory rewardForEpoch
+         = epochFeeHandlerClaims[_epoch][_feeHandler];
 
         return
             calculateRewardsShare(
