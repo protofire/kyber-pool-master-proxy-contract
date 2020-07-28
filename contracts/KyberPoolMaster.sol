@@ -1,4 +1,5 @@
 pragma solidity 0.6.6;
+pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
@@ -350,30 +351,15 @@ contract KyberPoolMaster is Ownable {
     function getEpochDFeeData(uint256 epoch)
         public
         view
-        returns (
-            uint256 fromEpoch,
-            uint256 fee,
-            bool applied
-        )
+        returns (DFeeData memory epochDFee)
     {
-        DFeeData memory epochDFee = delegationFees[getEpochDFeeDataId(epoch)];
-        fromEpoch = epochDFee.fromEpoch;
-        fee = epochDFee.fee;
-        applied = epochDFee.applied;
+        epochDFee = delegationFees[getEpochDFeeDataId(epoch)];
     }
 
     /**
      * @dev Gets the the delegation fee data corresponding to the current epoch
      */
-    function delegationFee()
-        public
-        view
-        returns (
-            uint256 fromEpoch,
-            uint256 fee,
-            bool applied
-        )
-    {
+    function delegationFee() public view returns (DFeeData memory) {
         uint256 curEpoch = kyberDao.getCurrentEpochNumber();
         return getEpochDFeeData(curEpoch);
     }
