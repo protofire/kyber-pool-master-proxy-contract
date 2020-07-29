@@ -248,7 +248,7 @@ Claims rewards for a given group of epochs in all FeeHandlers, distribute fees a
 function **`claimRewardsMaster`**(uint256[] memory _epochGroup) public
 | Parameter | Type | Description |
 | ---------- |:-------:|:-------------------:|
-| `_epochGroup` | uint256[] | a gropup of epochs from which rewards are being claimed |
+| `_epochGroup` | uint256[] | a group of epochs from which rewards are being claimed, ordered ascending and with no duplicate elements  |
 
 #### Example
 Someone claims pool unclaimed reward for epoch 5, 6 and 7
