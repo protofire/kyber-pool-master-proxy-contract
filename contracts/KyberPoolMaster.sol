@@ -337,19 +337,19 @@ contract KyberPoolMaster is Ownable {
             return _from;
         }
 
-        uint256 L = _from;
-        uint256 R = delegationFees.length;
+        uint256 left = _from;
+        uint256 right = delegationFees.length;
 
-        while (L < R) {
-            uint256 m = (L + R).div(2);
+        while (left < right) {
+            uint256 m = (left + right).div(2);
             if (delegationFees[m].fromEpoch > _epoch) {
-                R = m;
+                right = m;
             } else {
-                L = m + 1;
+                left = m + 1;
             }
         }
 
-        return R - 1;
+        return right - 1;
     }
 
     /**
@@ -440,10 +440,14 @@ contract KyberPoolMaster is Ownable {
 
     /**
      * @dev  Claims rewards for a given group of epochs in all feeHandlers, distribute fees and its share to poolMaster
-     * @param _epochGroup An array of epochs for which rewards are being claimed
+     * @param _epochGroup An array of epochs for which rewards are being claimed. Asc order and uniqueness is required.
      */
     function claimRewardsMaster(uint256[] memory _epochGroup) public {
         require(_epochGroup.length > 0, "cRMaste: _epochGroup required");
+        require(
+            isOrderedSet(_epochGroup),
+            "cRMaste: order and uniqueness required"
+        );
 
         IERC20[] memory tokensWithRewards = new IERC20[](
             feeHandlersList.length
@@ -451,12 +455,12 @@ contract KyberPoolMaster is Ownable {
         uint256 tokensWithRewardsLength = 0;
         uint256[] memory accruedByToken = new uint256[](feeHandlersList.length);
 
+        uint256 feeId = 0;
+
         for (uint256 j = 0; j < _epochGroup.length; j++) {
             uint256 _epoch = _epochGroup[j];
-            DFeeData storage epochDFee = delegationFees[getEpochDFeeDataId(
-                _epoch,
-                0
-            )];
+            feeId = getEpochDFeeDataId(_epoch, feeId);
+            DFeeData storage epochDFee = delegationFees[feeId];
 
             if (!epochDFee.applied) {
                 applyFee(epochDFee);
@@ -835,6 +839,29 @@ contract KyberPoolMaster is Ownable {
      */
     function feeHandlersListLength() public view returns (uint256) {
         return feeHandlersList.length;
+    }
+
+    /**
+     * @dev Checks if elements in array are ordered and unique
+     */
+    function isOrderedSet(uint256[] memory numbers)
+        internal
+        pure
+        returns (bool)
+    {
+        bool isOrdered = true;
+
+        if (numbers.length > 1) {
+            for (uint256 i = 0; i < numbers.length - 1; i++) {
+                // strict inequality ensures both ordering and uniqueness
+                if (numbers[i] >= numbers[i + 1]) {
+                    isOrdered = false;
+                    break;
+                }
+            }
+        }
+
+        return isOrdered;
     }
 
     /**

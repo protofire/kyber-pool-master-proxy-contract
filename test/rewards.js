@@ -392,6 +392,51 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       expectEvent(receipt, 'MasterClaimReward');
     });
 
+    it('should revert when trying to claim with no epoch', async () => {
+      await prepareEpochForClaim({
+        epoch: 1,
+        staker: kyberPoolMaster.address,
+        feeHandlers: [kyberFeeHandler1],
+        stakerRewardPercentage: '200000000000000000', // 20%
+        rewardsPerEpoch: ['3000000000000000000'], // 3ETH
+      });
+
+      await expectRevert(
+        kyberPoolMaster.claimRewardsMaster([], {from: mike}),
+        'cRMaste: _epochGroup required'
+      );
+    });
+
+    it('should revert when trying to claim with repeated epochs', async () => {
+      await prepareEpochForClaim({
+        epoch: 1,
+        staker: kyberPoolMaster.address,
+        feeHandlers: [kyberFeeHandler1],
+        stakerRewardPercentage: '200000000000000000', // 20%
+        rewardsPerEpoch: ['3000000000000000000'], // 3ETH
+      });
+
+      await expectRevert(
+        kyberPoolMaster.claimRewardsMaster([1, 1], {from: mike}),
+        'cRMaste: order and uniqueness required'
+      );
+    });
+
+    it('should revert when trying to claim with unordered epochs', async () => {
+      await prepareEpochForClaim({
+        epoch: 1,
+        staker: kyberPoolMaster.address,
+        feeHandlers: [kyberFeeHandler1],
+        stakerRewardPercentage: '200000000000000000', // 20%
+        rewardsPerEpoch: ['3000000000000000000'], // 3ETH
+      });
+
+      await expectRevert(
+        kyberPoolMaster.claimRewardsMaster([2, 1], {from: mike}),
+        'cRMaste: order and uniqueness required'
+      );
+    });
+
     it("should only transfer fee to poolMaster if it hasn't stake for the epoch", async () => {
       // fee 1%
       // rewardPerEpoch 3ETH
