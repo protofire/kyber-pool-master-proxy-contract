@@ -248,7 +248,7 @@ Claims rewards for a given group of epochs in all FeeHandlers, distribute fees a
 function **`claimRewardsMaster`**(uint256[] memory _epochGroup) public
 | Parameter | Type | Description |
 | ---------- |:-------:|:-------------------:|
-| `_epochGroup` | uint256[] | a gropup of epochs from which rewards are being claimed |
+| `_epochGroup` | uint256[] | a group of epochs from which rewards are being claimed, ordered ascending and with no duplicate elements  |
 
 #### Example
 Someone claims pool unclaimed reward for epoch 5, 6 and 7
@@ -356,24 +356,14 @@ Check if STAKER_ADDRESS as claimed reward for epoch 5 and FEE_HANDLER_ADDRESS
 eth contract:call --NETWORK KyberPoolMaster@KYBER_POOL_MASTER_CONTRACT_ADDRESS 'claimedDelegateReward(STAKER_ADDRESS, 5, FEE_HANDLER_ADDRESS)'
 ```
 
-#### claimedPoolReward
-Mapping of if poolMaster has claimed reward for an epoch and FeeHandler for the pool
+#### epochFeeHandlerClaims
+Mapping of if poolMaster has claimed reward for and amount of rewards owed to poolMembers for an epoch and FeeHandler
 
 #### Example
 Check if pool has claimed rewards for epoch 4 and FEE_HANDLER_ADDRESS
 
 ```bash
-eth contract:call --NETWORK KyberPoolMaster@KYBER_POOL_MASTER_CONTRACT_ADDRESS 'claimedPoolReward(4, FEE_HANDLER_ADDRESS)'
-```
-
-#### memberRewards
-An amount of rewards owed to poolMembers for an epoch and FeeHandler
-
-#### Example
-Check poolMembers’ rewards from FEE_HANDLER_ADDRESS in epoch 4.
-
-```bash
-eth contract:call --NETWORK KyberPoolMaster@KYBER_POOL_MASTER_CONTRACT_ADDRESS 'memberRewards(4, FEE_HANDLER_ADDRESS)'
+eth contract:call --NETWORK KyberPoolMaster@KYBER_POOL_MASTER_CONTRACT_ADDRESS 'epochFeeHandlerClaims(4, FEE_HANDLER_ADDRESS)'
 ```
 
 #### feeHandlersList

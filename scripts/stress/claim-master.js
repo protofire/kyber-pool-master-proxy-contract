@@ -129,7 +129,7 @@ contract('KyberPoolMaster claiming', async (accounts) => {
         expectedBalance.toString()
       );
 
-      const epochPoolMembersShare = await kyberPoolMaster.memberRewards(
+      const epochPoolMembersShare = await kyberPoolMaster.epochFeeHandlerClaims(
         epoch,
         kyberFeeHandler.address
       );
@@ -137,11 +137,11 @@ contract('KyberPoolMaster claiming', async (accounts) => {
         poolMemberShare.toString()
       );
 
-      const claimedPoolReward = await kyberPoolMaster.claimedPoolReward(
+      const epochFeeHandlerClaims = await kyberPoolMaster.epochFeeHandlerClaims(
         epoch,
         kyberFeeHandler.address
       );
-      expect(claimedPoolReward).to.equal(true);
+      expect(epochFeeHandlerClaims.claimedByPool).to.equal(true);
     };
 
     before('one time', async () => {

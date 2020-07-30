@@ -1,4 +1,5 @@
 pragma solidity 0.6.6;
+pragma experimental ABIEncoderV2;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
@@ -33,17 +34,13 @@ contract KyberPoolMaster is Ownable {
     mapping(uint256 => mapping(address => mapping(address => bool)))
         public claimedDelegateReward;
 
-    // Mapping of if the pool has claimed reward for an epoch in a feeHandler
-    // epoch -> feeHandler -> true | false
-    mapping(uint256 => mapping(address => bool)) public claimedPoolReward;
-
-    // Amount of rewards owed to poolMembers for an epoch
-    struct Reward {
+    struct Claim {
+        bool claimedByPool;
         uint256 totalRewards;
         uint256 totalStaked;
     }
-    //epoch -> feeHandler -> reward
-    mapping(uint256 => mapping(address => Reward)) public memberRewards;
+    //epoch -> feeHandler -> Claim
+    mapping(uint256 => mapping(address => Claim)) public epochFeeHandlerClaims;
 
     // Fee charged by poolMasters to poolMembers for services
     // Denominated in 1e4 units
@@ -328,23 +325,31 @@ contract KyberPoolMaster is Ownable {
 
     /**
      * @dev Gets the id of the delegation fee corresponding to the given epoch
-     * @param epoch for which epoch is querying delegation fee
+     * @param _epoch for which epoch is querying delegation fee
+     * @param _from delegationFees starting index
      */
-    function getEpochDFeeDataId(uint256 epoch)
+    function getEpochDFeeDataId(uint256 _epoch, uint256 _from)
         internal
         view
-        returns (uint256 dFeeDataId)
+        returns (uint256)
     {
-        for (
-            dFeeDataId = delegationFees.length - 1;
-            dFeeDataId > 0;
-            dFeeDataId--
-        ) {
-            DFeeData memory dFeeData = delegationFees[dFeeDataId];
-            if (dFeeData.fromEpoch <= epoch) {
-                break;
+        if (delegationFees[_from].fromEpoch > _epoch) {
+            return _from;
+        }
+
+        uint256 left = _from;
+        uint256 right = delegationFees.length;
+
+        while (left < right) {
+            uint256 m = (left + right).div(2);
+            if (delegationFees[m].fromEpoch > _epoch) {
+                right = m;
+            } else {
+                left = m + 1;
             }
         }
+
+        return right - 1;
     }
 
     /**
@@ -354,30 +359,15 @@ contract KyberPoolMaster is Ownable {
     function getEpochDFeeData(uint256 epoch)
         public
         view
-        returns (
-            uint256 fromEpoch,
-            uint256 fee,
-            bool applied
-        )
+        returns (DFeeData memory epochDFee)
     {
-        DFeeData memory epochDFee = delegationFees[getEpochDFeeDataId(epoch)];
-        fromEpoch = epochDFee.fromEpoch;
-        fee = epochDFee.fee;
-        applied = epochDFee.applied;
+        epochDFee = delegationFees[getEpochDFeeDataId(epoch, 0)];
     }
 
     /**
      * @dev Gets the the delegation fee data corresponding to the current epoch
      */
-    function delegationFee()
-        public
-        view
-        returns (
-            uint256 fromEpoch,
-            uint256 fee,
-            bool applied
-        )
-    {
+    function delegationFee() public view returns (DFeeData memory) {
         uint256 curEpoch = kyberDao.getCurrentEpochNumber();
         return getEpochDFeeData(curEpoch);
     }
@@ -394,7 +384,7 @@ contract KyberPoolMaster is Ownable {
         uint256 _epoch,
         IExtendedKyberFeeHandler _feeHandler
     ) public view returns (uint256) {
-        if (claimedPoolReward[_epoch][address(_feeHandler)]) {
+        if (epochFeeHandlerClaims[_epoch][address(_feeHandler)].claimedByPool) {
             return 0;
         }
 
@@ -450,10 +440,14 @@ contract KyberPoolMaster is Ownable {
 
     /**
      * @dev  Claims rewards for a given group of epochs in all feeHandlers, distribute fees and its share to poolMaster
-     * @param _epochGroup An array of epochs for which rewards are being claimed
+     * @param _epochGroup An array of epochs for which rewards are being claimed. Asc order and uniqueness is required.
      */
     function claimRewardsMaster(uint256[] memory _epochGroup) public {
         require(_epochGroup.length > 0, "cRMaste: _epochGroup required");
+        require(
+            isOrderedSet(_epochGroup),
+            "cRMaste: order and uniqueness required"
+        );
 
         IERC20[] memory tokensWithRewards = new IERC20[](
             feeHandlersList.length
@@ -461,11 +455,16 @@ contract KyberPoolMaster is Ownable {
         uint256 tokensWithRewardsLength = 0;
         uint256[] memory accruedByToken = new uint256[](feeHandlersList.length);
 
+        uint256 feeId = 0;
+
         for (uint256 j = 0; j < _epochGroup.length; j++) {
             uint256 _epoch = _epochGroup[j];
-            DFeeData storage epochDFee = delegationFees[getEpochDFeeDataId(
-                _epoch
-            )];
+            feeId = getEpochDFeeDataId(_epoch, feeId);
+            DFeeData storage epochDFee = delegationFees[feeId];
+
+            if (!epochDFee.applied) {
+                applyFee(epochDFee);
+            }
 
             (uint256 stake, uint256 delegatedStake, ) = kyberStaking
                 .getStakerRawData(address(this), _epoch);
@@ -512,8 +511,8 @@ contract KyberPoolMaster is Ownable {
                     rewardInfo.poolMembersShare
                 ); // fee + poolMaster stake share
 
-                claimedPoolReward[_epoch][feeHandlersList[i]] = true;
-                memberRewards[_epoch][feeHandlersList[i]] = Reward(
+                epochFeeHandlerClaims[_epoch][feeHandlersList[i]] = Claim(
+                    true,
                     rewardInfo.poolMembersShare,
                     delegatedStake
                 );
@@ -533,10 +532,6 @@ contract KyberPoolMaster is Ownable {
                         tokenI
                     )]
                         .add(rewardInfo.poolMasterShare);
-                }
-
-                if (!epochDFee.applied) {
-                    applyFee(epochDFee);
                 }
 
                 if (!successfulClaimByFeeHandler[feeHandlersList[i]]) {
@@ -603,7 +598,9 @@ contract KyberPoolMaster is Ownable {
         uint256 _epoch,
         address _feeHandler
     ) public view returns (uint256) {
-        if (!claimedPoolReward[_epoch][_feeHandler]) {
+        if (
+            !epochFeeHandlerClaims[_epoch][address(_feeHandler)].claimedByPool
+        ) {
             return 0;
         }
 
@@ -624,7 +621,9 @@ contract KyberPoolMaster is Ownable {
             return 0;
         }
 
-        Reward memory rewardForEpoch = memberRewards[_epoch][_feeHandler];
+
+            Claim memory rewardForEpoch
+         = epochFeeHandlerClaims[_epoch][_feeHandler];
 
         return
             calculateRewardsShare(
@@ -840,6 +839,29 @@ contract KyberPoolMaster is Ownable {
      */
     function feeHandlersListLength() public view returns (uint256) {
         return feeHandlersList.length;
+    }
+
+    /**
+     * @dev Checks if elements in array are ordered and unique
+     */
+    function isOrderedSet(uint256[] memory numbers)
+        internal
+        pure
+        returns (bool)
+    {
+        bool isOrdered = true;
+
+        if (numbers.length > 1) {
+            for (uint256 i = 0; i < numbers.length - 1; i++) {
+                // strict inequality ensures both ordering and uniqueness
+                if (numbers[i] >= numbers[i + 1]) {
+                    isOrdered = false;
+                    break;
+                }
+            }
+        }
+
+        return isOrdered;
     }
 
     /**
