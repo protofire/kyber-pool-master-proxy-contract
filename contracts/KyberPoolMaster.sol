@@ -455,14 +455,14 @@ contract KyberPoolMaster is Ownable {
         uint256[] memory _epochGroup,
         address[] memory _feeHandlerGroup
     ) public {
-        require(_epochGroup.length > 0, "cRMaste: _epochGroup required");
+        require(_epochGroup.length > 0, "cRMaster: _epochGroup required");
         require(
             isOrderedSet(_epochGroup),
-            "cRMaste: order and uniqueness required"
+            "cRMaster: order and uniqueness required"
         );
         require(
             _feeHandlerGroup.length > 0,
-            "cRMaste: _feeHandlerGroup required"
+            "cRMaster: _feeHandlerGroup required"
         );
 
         IERC20[] memory tokensWithRewards = new IERC20[](
@@ -529,7 +529,7 @@ contract KyberPoolMaster is Ownable {
                 tokensWithRewards[k],
                 poolMaster,
                 accruedByToken[k],
-                "cRMaste: poolMaster share transfer failed"
+                "cRMaster: poolMaster share transfer failed"
             );
         }
     }
@@ -741,16 +741,6 @@ contract KyberPoolMaster is Ownable {
     }
 
     /**
-     * @dev PoolMember claims rewards for a given group of epochs in all feeHandlers.
-     *      It will transfer rewards where epoch->feeHandler has been claimed by the pool and not yet by the member.
-     *      This contract will keep locked remainings from rounding at a wei level.
-     * @param _epochGroup An array of epochs for which rewards are being claimed
-     */
-    function claimRewardsMember(uint256[] memory _epochGroup) public {
-        _claimRewardsMember(_epochGroup, msg.sender);
-    }
-
-    /**
      * @dev Someone claims rewards for a PoolMember in a given group of epochs in all feeHandlers.
      *      It will transfer rewards where epoch->feeHandler has been claimed by the pool and not yet by the member.
      *      This contract will keep locked remainings from rounding at a wei level.
@@ -758,35 +748,59 @@ contract KyberPoolMaster is Ownable {
      * @param _poolMember PoolMember address to claim rewards for
      */
     function claimRewardsMember(
-        uint256[] memory _epochGroup,
-        address _poolMember
+        address _poolMember,
+        uint256[] memory _epochGroup
     ) public {
-        _claimRewardsMember(_epochGroup, _poolMember);
+        _claimRewardsMember(_poolMember, _epochGroup, feeHandlersList);
+    }
+
+    /**
+     * @dev Someone claims rewards for a PoolMember in a given group of epochs in a given group of feeHandlers.
+     *      It will transfer rewards where epoch->feeHandler has been claimed by the pool and not yet by the member.
+     *      This contract will keep locked remainings from rounding at a wei level.
+     * @param _epochGroup An array of epochs for which rewards are being claimed
+     * @param _feeHandlerGroup An array of FeeHandlers for which rewards are being claimed
+     * @param _poolMember PoolMember address to claim rewards for
+     */
+    function claimRewardsMember(
+        address _poolMember,
+        uint256[] memory _epochGroup,
+        address[] memory _feeHandlerGroup
+    ) public {
+        _claimRewardsMember(_poolMember, _epochGroup, _feeHandlerGroup);
     }
 
     function _claimRewardsMember(
+        address _poolMember,
         uint256[] memory _epochGroup,
-        address _poolMember
+        address[] memory _feeHandlerGroup
     ) internal {
+        require(_epochGroup.length > 0, "cRMember: _epochGroup required");
+        require(
+            _feeHandlerGroup.length > 0,
+            "cRMember: _feeHandlerGroup required"
+        );
         IERC20[] memory tokensWithRewards = new IERC20[](
-            feeHandlersList.length
+            _feeHandlerGroup.length
         );
         uint256 tokensWithRewardsLength = 0;
-        uint256[] memory accruedByToken = new uint256[](feeHandlersList.length);
+        uint256[] memory accruedByToken = new uint256[](
+            _feeHandlerGroup.length
+        );
 
         for (uint256 j = 0; j < _epochGroup.length; j++) {
             uint256 _epoch = _epochGroup[j];
 
-            for (uint256 i = 0; i < feeHandlersList.length; i++) {
+            for (uint256 i = 0; i < _feeHandlerGroup.length; i++) {
                 uint256 poolMemberShare = getUnclaimedRewardsMember(
                     _poolMember,
                     _epoch,
-                    feeHandlersList[i]
+                    _feeHandlerGroup[i]
                 );
 
 
                     IERC20 rewardToken
-                 = rewardTokenByFeeHandler[feeHandlersList[i]];
+                 = rewardTokenByFeeHandler[_feeHandlerGroup[i]];
 
                 if (poolMemberShare == 0) {
                     continue;
@@ -803,12 +817,12 @@ contract KyberPoolMaster is Ownable {
                     )]
                         .add(poolMemberShare);
                 }
-                claimedDelegateReward[_epoch][_poolMember][feeHandlersList[i]] = true;
+                claimedDelegateReward[_epoch][_poolMember][_feeHandlerGroup[i]] = true;
 
                 emit MemberClaimReward(
                     _epoch,
                     _poolMember,
-                    feeHandlersList[i],
+                    _feeHandlerGroup[i],
                     rewardToken,
                     poolMemberShare
                 );
