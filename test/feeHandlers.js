@@ -391,7 +391,9 @@ contract('KyberPoolMaster FeeHandlers', async (accounts) => {
         rewardsPerEpoch: [ether('3')], // 3ETH,
       });
 
-      const receipt = await kyberPoolMaster.claimRewardsMaster([3], {
+      const receipt = await kyberPoolMaster.methods[
+        'claimRewardsMaster(uint256[])'
+      ]([3], {
         from: mike,
       });
 

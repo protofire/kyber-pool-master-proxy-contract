@@ -106,9 +106,12 @@ contract('KyberPoolMaster claiming', async (accounts) => {
 
       const poolMasterOwnerBalance = await balance.current(poolMasterOwner);
 
-      const receipt = await kyberPoolMaster.claimRewardsMaster([epoch], {
+      const receipt = await kyberPoolMaster.methods[
+        'claimRewardsMaster(uint256[])'
+      ]([epoch], {
         from: mike,
       });
+
       expectEvent(receipt, 'MasterClaimReward', {
         epoch: epoch.toString(),
         feeHandler: kyberFeeHandler.address,

@@ -267,7 +267,7 @@ contract('KyberPoolMaster claiming', async (accounts) => {
     );
   };
 
-  describe('#claimRewardsMaster', () => {
+  describe('#claimRewardsMaster(uint256[])', () => {
     beforeEach('running before each test', async () => {
       await reverter.revert();
 
@@ -356,7 +356,9 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       );
 
       await expectRevert(
-        kyberPoolMaster.claimRewardsMaster([1], {from: mike}),
+        kyberPoolMaster.methods['claimRewardsMaster(uint256[])']([1], {
+          from: mike,
+        }),
         'cRMaste: poolMaster share transfer failed'
       );
     });
@@ -378,7 +380,9 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       );
 
       await expectRevert(
-        kyberPoolMaster.claimRewardsMaster([1], {from: mike}),
+        kyberPoolMaster.methods['claimRewardsMaster(uint256[])']([1], {
+          from: mike,
+        }),
         'cRMaste: poolMaster share transfer failed'
       );
 
@@ -386,7 +390,9 @@ contract('KyberPoolMaster claiming', async (accounts) => {
         poolMasterOwner
       );
 
-      const receipt = await kyberPoolMaster.claimRewardsMaster([1], {
+      const receipt = await kyberPoolMaster.methods[
+        'claimRewardsMaster(uint256[])'
+      ]([1], {
         from: mike,
       });
       expectEvent(receipt, 'MasterClaimReward');
@@ -402,7 +408,9 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       });
 
       await expectRevert(
-        kyberPoolMaster.claimRewardsMaster([], {from: mike}),
+        kyberPoolMaster.methods['claimRewardsMaster(uint256[])']([], {
+          from: mike,
+        }),
         'cRMaste: _epochGroup required'
       );
     });
@@ -417,7 +425,9 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       });
 
       await expectRevert(
-        kyberPoolMaster.claimRewardsMaster([1, 1], {from: mike}),
+        kyberPoolMaster.methods['claimRewardsMaster(uint256[])']([1, 1], {
+          from: mike,
+        }),
         'cRMaste: order and uniqueness required'
       );
     });
@@ -432,7 +442,9 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       });
 
       await expectRevert(
-        kyberPoolMaster.claimRewardsMaster([2, 1], {from: mike}),
+        kyberPoolMaster.methods['claimRewardsMaster(uint256[])']([2, 1], {
+          from: mike,
+        }),
         'cRMaste: order and uniqueness required'
       );
     });
@@ -472,7 +484,9 @@ contract('KyberPoolMaster claiming', async (accounts) => {
         poolMasterOwner
       );
 
-      const receipt = await kyberPoolMaster.claimRewardsMaster([1, 2], {
+      const receipt = await kyberPoolMaster.methods[
+        'claimRewardsMaster(uint256[])'
+      ]([1, 2], {
         from: mike,
       });
 
@@ -664,7 +678,9 @@ contract('KyberPoolMaster claiming', async (accounts) => {
         poolMasterOwner
       );
 
-      const receipt = await kyberPoolMaster.claimRewardsMaster([1, 2], {
+      const receipt = await kyberPoolMaster.methods[
+        'claimRewardsMaster(uint256[])'
+      ]([1, 2], {
         from: mike,
       });
 
@@ -853,7 +869,9 @@ contract('KyberPoolMaster claiming', async (accounts) => {
         poolMasterOwner
       );
 
-      const receipt = await kyberPoolMaster.claimRewardsMaster([1, 2], {
+      const receipt = await kyberPoolMaster.methods[
+        'claimRewardsMaster(uint256[])'
+      ]([1, 2], {
         from: mike,
       });
       expectEvent(receipt, 'MasterClaimReward', {
@@ -1019,7 +1037,9 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       );
       expect(epochFeeHandlerClaims.claimedByPool).to.equal(false);
 
-      const receipt = await kyberPoolMaster.claimRewardsMaster([1], {
+      const receipt = await kyberPoolMaster.methods[
+        'claimRewardsMaster(uint256[])'
+      ]([1], {
         from: mike,
       });
 
@@ -1079,7 +1099,977 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       });
 
       await kyberDao.setCurrentEpochNumber(2);
-      const receipt = await kyberPoolMaster.claimRewardsMaster([2], {
+      const receipt = await kyberPoolMaster.methods[
+        'claimRewardsMaster(uint256[])'
+      ]([2], {
+        from: mike,
+      });
+      expectEvent(receipt, 'NewFees', {
+        fromEpoch: '2',
+        feeRate: '200',
+      });
+    });
+  });
+
+  describe('#claimRewardsMaster(uint256[],address[])', () => {
+    beforeEach('running before each test', async () => {
+      await reverter.revert();
+
+      bank = accounts[0];
+      daoSetter = accounts[1];
+      poolMasterOwner = accounts[2];
+      notOwner = accounts[3];
+      mike = accounts[4];
+
+      kyberStaking = await KyberStakingWithgetStakerDataForEpoch.new();
+
+      kyberDao = await KyberDao.new(NO_ZERO_ADDRESS, kyberStaking.address);
+
+      kyberFeeHandler1 = await KyberFeeHandlerWithClaimStakerReward.new(
+        kyberDao.address
+      );
+
+      rewardTokenA = await TestToken.new('Reward Token A', 'RTA', 18);
+      kyberFeeHandler2 = await KyberFeeHandlerWithClaimStakerRewardERC20.new(
+        kyberDao.address,
+        rewardTokenA.address
+      );
+
+      rewardTokenB = await TestToken.new('Reward Token B', 'RTB', 18);
+      kyberFeeHandler3 = await KyberFeeHandlerWithClaimStakerRewardERC20.new(
+        kyberDao.address,
+        rewardTokenB.address
+      );
+
+      kyberFeeHandler4 = await KyberFeeHandlerWithClaimStakerRewardERC20.new(
+        kyberDao.address,
+        rewardTokenB.address
+      );
+
+      kyberPoolMaster = await KyberPoolMaster.new(
+        kyberDao.address,
+        2,
+        100, // Denominated in 1e4 units - 100 = 1%
+        [
+          kyberFeeHandler1.address,
+          kyberFeeHandler2.address,
+          kyberFeeHandler3.address,
+          kyberFeeHandler4.address,
+        ],
+        [
+          ETH_TOKEN_ADDRESS,
+          rewardTokenA.address,
+          rewardTokenB.address,
+          rewardTokenB.address,
+        ],
+        {from: poolMasterOwner}
+      );
+
+      poolMasterNoFallbackMock = await PoolMasterNoFallbackMock.new(
+        kyberPoolMaster.address,
+        {value: '10000000000000000000', from: bank}
+      );
+
+      await kyberFeeHandler1.send('10000000000000000000', {from: bank});
+      await rewardTokenA.transfer(kyberFeeHandler2.address, mulPrecision(100));
+      await rewardTokenB.transfer(kyberFeeHandler3.address, mulPrecision(100));
+      await rewardTokenB.transfer(kyberFeeHandler4.address, mulPrecision(100));
+    });
+
+    it('should only be able to receive ETH from KyberFeeHandler1', async () => {
+      await expectRevert(
+        kyberPoolMaster.send('10', {from: mike}),
+        'only accept ETH from a KyberFeeHandler'
+      );
+    });
+
+    it('should revert when rewards is in ETH and poolMaster can not receive its share', async () => {
+      await prepareEpochForClaim({
+        epoch: 1,
+        staker: kyberPoolMaster.address,
+        feeHandlers: [kyberFeeHandler1],
+        stakerRewardPercentage: '200000000000000000', // 20%
+        rewardsPerEpoch: ['3000000000000000000'], // 3ETH
+      });
+
+      await kyberPoolMaster.transferOwnership(
+        poolMasterNoFallbackMock.address,
+        {
+          from: poolMasterOwner,
+        }
+      );
+
+      await expectRevert(
+        kyberPoolMaster.methods['claimRewardsMaster(uint256[],address[])'](
+          [1],
+          [kyberFeeHandler1.address],
+          {from: mike}
+        ),
+        'cRMaste: poolMaster share transfer failed'
+      );
+    });
+
+    it('should not revert after transferring ownership to someone who can receive ETH', async () => {
+      await prepareEpochForClaim({
+        epoch: 1,
+        staker: kyberPoolMaster.address,
+        feeHandlers: [kyberFeeHandler1],
+        stakerRewardPercentage: '200000000000000000', // 20%
+        rewardsPerEpoch: ['3000000000000000000'], // 3ETH,
+      });
+
+      await kyberPoolMaster.transferOwnership(
+        poolMasterNoFallbackMock.address,
+        {
+          from: poolMasterOwner,
+        }
+      );
+
+      await expectRevert(
+        kyberPoolMaster.methods['claimRewardsMaster(uint256[],address[])'](
+          [1],
+          [kyberFeeHandler1.address],
+          {from: mike}
+        ),
+        'cRMaste: poolMaster share transfer failed'
+      );
+
+      await poolMasterNoFallbackMock.transferPoolMasterOwnership(
+        poolMasterOwner
+      );
+
+      const receipt = await kyberPoolMaster.methods[
+        'claimRewardsMaster(uint256[],address[])'
+      ]([1], [kyberFeeHandler1.address], {
+        from: mike,
+      });
+      expectEvent(receipt, 'MasterClaimReward');
+    });
+
+    it('should revert when trying to claim with no epoch', async () => {
+      await prepareEpochForClaim({
+        epoch: 1,
+        staker: kyberPoolMaster.address,
+        feeHandlers: [kyberFeeHandler1],
+        stakerRewardPercentage: '200000000000000000', // 20%
+        rewardsPerEpoch: ['3000000000000000000'], // 3ETH
+      });
+
+      await expectRevert(
+        kyberPoolMaster.methods['claimRewardsMaster(uint256[],address[])'](
+          [],
+          [kyberFeeHandler1.address],
+          {from: mike}
+        ),
+        'cRMaste: _epochGroup required'
+      );
+    });
+
+    it('should revert when trying to claim with repeated epochs', async () => {
+      await prepareEpochForClaim({
+        epoch: 1,
+        staker: kyberPoolMaster.address,
+        feeHandlers: [kyberFeeHandler1],
+        stakerRewardPercentage: '200000000000000000', // 20%
+        rewardsPerEpoch: ['3000000000000000000'], // 3ETH
+      });
+
+      await expectRevert(
+        kyberPoolMaster.methods['claimRewardsMaster(uint256[],address[])'](
+          [1, 1],
+          [kyberFeeHandler1.address],
+          {from: mike}
+        ),
+        'cRMaste: order and uniqueness required'
+      );
+    });
+
+    it('should revert when trying to claim with unordered epochs', async () => {
+      await prepareEpochForClaim({
+        epoch: 1,
+        staker: kyberPoolMaster.address,
+        feeHandlers: [kyberFeeHandler1],
+        stakerRewardPercentage: '200000000000000000', // 20%
+        rewardsPerEpoch: ['3000000000000000000'], // 3ETH
+      });
+
+      await expectRevert(
+        kyberPoolMaster.methods['claimRewardsMaster(uint256[],address[])'](
+          [2, 1],
+          [kyberFeeHandler1.address],
+          {from: mike}
+        ),
+        'cRMaste: order and uniqueness required'
+      );
+    });
+
+    it('should revert when trying to claim with no feeHandlers', async () => {
+      await prepareEpochForClaim({
+        epoch: 1,
+        staker: kyberPoolMaster.address,
+        feeHandlers: [kyberFeeHandler1],
+        stakerRewardPercentage: '200000000000000000', // 20%
+        rewardsPerEpoch: ['3000000000000000000'], // 3ETH
+      });
+
+      await expectRevert(
+        kyberPoolMaster.methods['claimRewardsMaster(uint256[],address[])'](
+          [1],
+          [],
+          {from: mike}
+        ),
+        'cRMaste: _feeHandlerGroup required'
+      );
+    });
+
+    it("should only transfer fee to poolMaster if it hasn't stake for the epoch, claiming on a given feeHandler", async () => {
+      // fee 1%
+      // rewardPerEpoch 3ETH
+      // stakerRewardPercentage 20%
+      // unclaimReward = 3 ETH x 20 / 100 = 0.6 ETH
+      // poolMasterShare only 1% of unclaimReward = 0.6 ETH x 1 / 100 = 0.006 ETH
+      // poolMembersShare unclaimReward - poolMasterShare = 0.6 ETH - 0.006 ETH
+      const rewardsPerEpoch = ether('3');
+      const unclaimReward = ether('0.6');
+      const feeAmount = ether('0.006');
+
+      await prepareEpochForClaim({
+        epoch: 1,
+        staker: kyberPoolMaster.address,
+        feeHandlers: [kyberFeeHandler1, kyberFeeHandler2],
+        stakerRewardPercentage: '200000000000000000', // 20%
+        rewardsPerEpoch: [rewardsPerEpoch, rewardsPerEpoch], // 3ETH,
+      });
+
+      await prepareEpochForClaim({
+        epoch: 2,
+        staker: kyberPoolMaster.address,
+        feeHandlers: [kyberFeeHandler3, kyberFeeHandler4],
+        stakerRewardPercentage: '200000000000000000', // 20%
+        rewardsPerEpoch: [rewardsPerEpoch, rewardsPerEpoch], // 3ETH,
+      });
+
+      const poolMasterOwnerETHBalance = await balance.current(poolMasterOwner);
+      const poolMasterOwnerRTABalance = await rewardTokenA.balanceOf(
+        poolMasterOwner
+      );
+      const poolMasterOwnerRTBBalance = await rewardTokenB.balanceOf(
+        poolMasterOwner
+      );
+
+      const receipt = await kyberPoolMaster.methods[
+        'claimRewardsMaster(uint256[],address[])'
+      ]([1, 2], [kyberFeeHandler1.address], {
+        from: mike,
+      });
+
+      expectEvent(receipt, 'MasterClaimReward', {
+        epoch: '1',
+        feeHandler: kyberFeeHandler1.address,
+        poolMaster: poolMasterOwner,
+        rewardToken: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
+        totalRewards: unclaimReward,
+        feeApplied: '100',
+        feeAmount: feeAmount,
+        poolMasterShare: '0',
+      });
+
+      const poolMasterOwnerETHBalanceAfter = await balance.current(
+        poolMasterOwner
+      );
+      const poolMasterOwnerRTABalanceAfter = await rewardTokenA.balanceOf(
+        poolMasterOwner
+      );
+      const poolMasterOwnerRTBBalanceAfter = await rewardTokenB.balanceOf(
+        poolMasterOwner
+      );
+
+      const expectedETHBalance = poolMasterOwnerETHBalance.add(
+        new BN(feeAmount)
+      );
+      expect(poolMasterOwnerETHBalanceAfter.toString()).to.equal(
+        expectedETHBalance.toString()
+      );
+
+      expect(poolMasterOwnerRTABalanceAfter.toString()).to.equal(
+        poolMasterOwnerRTABalance.toString()
+      );
+
+      expect(poolMasterOwnerRTBBalanceAfter.toString()).to.equal(
+        poolMasterOwnerRTBBalance.toString()
+      );
+
+      //
+
+      const poolMembersETHShare = await kyberPoolMaster.epochFeeHandlerClaims(
+        1,
+        kyberFeeHandler1.address
+      );
+      const expectedPoolETHMembersShare = new BN(unclaimReward).sub(
+        new BN(feeAmount)
+      );
+      expect(poolMembersETHShare.totalRewards.toString()).to.equal(
+        expectedPoolETHMembersShare.toString()
+      );
+
+      const epochFeeHandlerClaimsETH = await kyberPoolMaster.epochFeeHandlerClaims(
+        1,
+        kyberFeeHandler1.address
+      );
+      expect(epochFeeHandlerClaimsETH.claimedByPool).to.equal(true);
+
+      const poolMembersRTAShare = await kyberPoolMaster.epochFeeHandlerClaims(
+        1,
+        kyberFeeHandler2.address
+      );
+      const expectedPoolRTAMembersShare = new BN(unclaimReward).sub(
+        new BN(feeAmount)
+      );
+      expect(poolMembersRTAShare.totalRewards.toString()).to.equal('0');
+
+      const epochFeeHandlerClaimsRTA = await kyberPoolMaster.epochFeeHandlerClaims(
+        1,
+        kyberFeeHandler2.address
+      );
+      expect(epochFeeHandlerClaimsRTA.claimedByPool).to.equal(false);
+
+      //
+      const poolMembersRTBShare3 = await kyberPoolMaster.epochFeeHandlerClaims(
+        2,
+        kyberFeeHandler3.address
+      );
+      const poolMembersRTBShare4 = await kyberPoolMaster.epochFeeHandlerClaims(
+        2,
+        kyberFeeHandler4.address
+      );
+      const expectedPoolRTBMembersShare3 = new BN(unclaimReward).sub(
+        new BN(feeAmount)
+      );
+      const expectedPoolRTBMembersShare4 = new BN(unclaimReward).sub(
+        new BN(feeAmount)
+      );
+      expect(poolMembersRTBShare3.totalRewards.toString()).to.equal('0');
+      expect(poolMembersRTBShare4.totalRewards.toString()).to.equal('0');
+
+      const epochFeeHandlerClaimsRTB3 = await kyberPoolMaster.epochFeeHandlerClaims(
+        2,
+        kyberFeeHandler3.address
+      );
+      expect(epochFeeHandlerClaimsRTB3.claimedByPool).to.equal(false);
+
+      const epochFeeHandlerClaimsRTB4 = await kyberPoolMaster.epochFeeHandlerClaims(
+        2,
+        kyberFeeHandler4.address
+      );
+      expect(epochFeeHandlerClaimsRTB4.claimedByPool).to.equal(false);
+    });
+
+    it('should transfer fee + share to poolMaster if it has stake for the epoch, claiming on a given feeHandler', async () => {
+      // fee 1%
+      // rewardPerEpoch 3ETH
+      // stakerRewardPercentage 20%
+      // unclaimReward = 3 ETH x 20 / 100 = 0.6 ETH
+      // delegatedStake 1
+      // stake 1
+      // poolMasterShare fee (1% of unclaimReward = 0.6 ETH x 1 / 100 = 0.006 ETH) + it stake share (50% of unclaimReward - fee = (0.6 ETH - 0.006 ETH) / 2 = 0.297 ETH) = 0.303 ETH
+      // poolMembersShare 50% of unclaimReward - fee = (0.6 ETH - 0.006 ETH) / 2 = 0.297 ETH
+      const rewardsPerEpoch = ether('3');
+      const unclaimReward = ether('0.6');
+      const feeAmount = ether('0.006');
+      const share = ether('0.297');
+
+      await prepareEpochForClaim({
+        epoch: 1,
+        staker: kyberPoolMaster.address,
+        feeHandlers: [kyberFeeHandler1, kyberFeeHandler2],
+        stakerRewardPercentage: '200000000000000000', // 20%
+        rewardsPerEpoch: [rewardsPerEpoch, rewardsPerEpoch], // 3ETH,
+        stakerStake: '1',
+        delegatedStake: '1',
+      });
+
+      await prepareEpochForClaim({
+        epoch: 2,
+        staker: kyberPoolMaster.address,
+        feeHandlers: [kyberFeeHandler3, kyberFeeHandler4],
+        stakerRewardPercentage: '200000000000000000', // 20%
+        rewardsPerEpoch: [rewardsPerEpoch, rewardsPerEpoch], // 3ETH,
+        stakerStake: '1',
+        delegatedStake: '1',
+      });
+
+      const poolMasterOwnerETHBalance = await balance.current(poolMasterOwner);
+      const poolMasterOwnerRTABalance = await rewardTokenA.balanceOf(
+        poolMasterOwner
+      );
+      const poolMasterOwnerRTBBalance = await rewardTokenB.balanceOf(
+        poolMasterOwner
+      );
+
+      const receipt = await kyberPoolMaster.methods[
+        'claimRewardsMaster(uint256[],address[])'
+      ]([1, 2], [kyberFeeHandler1.address], {
+        from: mike,
+      });
+
+      expectEvent(receipt, 'MasterClaimReward', {
+        epoch: '1',
+        feeHandler: kyberFeeHandler1.address,
+        poolMaster: poolMasterOwner,
+        rewardToken: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
+        totalRewards: unclaimReward,
+        feeApplied: '100',
+        feeAmount: feeAmount,
+        poolMasterShare: share,
+      });
+
+      const poolMasterOwnerETHBalanceAfter = await balance.current(
+        poolMasterOwner
+      );
+      const expectedETHBalance = poolMasterOwnerETHBalance
+        .add(new BN(feeAmount))
+        .add(new BN(share));
+      expect(poolMasterOwnerETHBalanceAfter.toString()).to.equal(
+        expectedETHBalance.toString()
+      );
+
+      const poolMembersETHShare = await kyberPoolMaster.epochFeeHandlerClaims(
+        1,
+        kyberFeeHandler1.address
+      );
+      const expectedPoolMembersETHShare = new BN(unclaimReward)
+        .sub(new BN(feeAmount))
+        .div(new BN(2));
+      expect(poolMembersETHShare.totalRewards.toString()).to.equal(
+        expectedPoolMembersETHShare.toString()
+      );
+
+      const epochFeeHandlerClaimsETH = await kyberPoolMaster.epochFeeHandlerClaims(
+        1,
+        kyberFeeHandler1.address
+      );
+      expect(epochFeeHandlerClaimsETH.claimedByPool).to.equal(true);
+
+      const poolMasterOwnerRTABalanceAfter = await rewardTokenA.balanceOf(
+        poolMasterOwner
+      );
+      expect(poolMasterOwnerRTABalanceAfter.toString()).to.equal(
+        poolMasterOwnerRTABalance.toString()
+      );
+
+      const poolMembersRTAShare = await kyberPoolMaster.epochFeeHandlerClaims(
+        1,
+        kyberFeeHandler2.address
+      );
+      expect(poolMembersRTAShare.totalRewards.toString()).to.equal('0');
+
+      const epochFeeHandlerClaimsRTA = await kyberPoolMaster.epochFeeHandlerClaims(
+        1,
+        kyberFeeHandler2.address
+      );
+      expect(epochFeeHandlerClaimsRTA.claimedByPool).to.equal(false);
+
+      //
+      const poolMasterOwnerRTBBalanceAfter = await rewardTokenB.balanceOf(
+        poolMasterOwner
+      );
+      expect(poolMasterOwnerRTBBalanceAfter.toString()).to.equal('0');
+
+      const poolMembersRTBShare3 = await kyberPoolMaster.epochFeeHandlerClaims(
+        2,
+        kyberFeeHandler3.address
+      );
+      expect(poolMembersRTBShare3.totalRewards.toString()).to.equal('0');
+
+      const epochFeeHandlerClaimsRTB3 = await kyberPoolMaster.epochFeeHandlerClaims(
+        2,
+        kyberFeeHandler3.address
+      );
+      expect(epochFeeHandlerClaimsRTB3.claimedByPool).to.equal(false);
+      //
+      const poolMembersRTBShare4 = await kyberPoolMaster.epochFeeHandlerClaims(
+        2,
+        kyberFeeHandler4.address
+      );
+      expect(poolMembersRTBShare4.totalRewards.toString()).to.equal('0');
+
+      const epochFeeHandlerClaimsRTB4 = await kyberPoolMaster.epochFeeHandlerClaims(
+        2,
+        kyberFeeHandler4.address
+      );
+      expect(epochFeeHandlerClaimsRTB4.claimedByPool).to.equal(false);
+    });
+
+    it('poolMaster should receive all the reward if no one has delegated its stake to him, claiming on a given feeHandler', async () => {
+      // fee 1%
+      // rewardPerEpoch 3ETH
+      // stakerRewardPercentage 20%
+      // unclaimReward = 3 ETH x 20 / 100 = 0.6 ETH
+      // delegatedStake 0
+      // stake 1
+      // poolMasterShare = unclaimReward
+      // poolMembersShare 0
+      const rewardsPerEpoch = ether('3');
+      const unclaimReward = ether('0.6');
+      const feeAmount = ether('0.006');
+
+      await prepareEpochForClaim({
+        epoch: 1,
+        staker: kyberPoolMaster.address,
+        feeHandlers: [kyberFeeHandler1, kyberFeeHandler2],
+        stakerRewardPercentage: '200000000000000000', // 20%
+        rewardsPerEpoch: [rewardsPerEpoch, rewardsPerEpoch], // 3ETH,
+        stakerStake: '1',
+        delegatedStake: '0',
+      });
+
+      await prepareEpochForClaim({
+        epoch: 2,
+        staker: kyberPoolMaster.address,
+        feeHandlers: [kyberFeeHandler3, kyberFeeHandler4],
+        stakerRewardPercentage: '200000000000000000', // 20%
+        rewardsPerEpoch: [rewardsPerEpoch, rewardsPerEpoch], // 3ETH,
+        stakerStake: '1',
+        delegatedStake: '0',
+      });
+
+      const poolMasterOwnerETHBalance = await balance.current(poolMasterOwner);
+      const poolMasterOwnerRTABalance = await rewardTokenA.balanceOf(
+        poolMasterOwner
+      );
+      const poolMasterOwnerRTBBalance = await rewardTokenB.balanceOf(
+        poolMasterOwner
+      );
+
+      const receipt = await kyberPoolMaster.methods[
+        'claimRewardsMaster(uint256[],address[])'
+      ](
+        [1, 2],
+        [
+          kyberFeeHandler1.address,
+          kyberFeeHandler2.address,
+          kyberFeeHandler3.address,
+        ],
+        {
+          from: mike,
+        }
+      );
+      expectEvent(receipt, 'MasterClaimReward', {
+        epoch: '1',
+        feeHandler: kyberFeeHandler1.address,
+        poolMaster: poolMasterOwner,
+        rewardToken: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
+        totalRewards: unclaimReward,
+        feeApplied: '100',
+        feeAmount: feeAmount,
+        poolMasterShare: new BN(unclaimReward)
+          .sub(new BN(feeAmount))
+          .toString(),
+      });
+
+      expectEvent(receipt, 'MasterClaimReward', {
+        epoch: '1',
+        feeHandler: kyberFeeHandler2.address,
+        poolMaster: poolMasterOwner,
+        rewardToken: rewardTokenA.address,
+        totalRewards: unclaimReward,
+        feeApplied: '100',
+        feeAmount: feeAmount,
+        poolMasterShare: new BN(unclaimReward)
+          .sub(new BN(feeAmount))
+          .toString(),
+      });
+
+      expectEvent(receipt, 'MasterClaimReward', {
+        epoch: '2',
+        feeHandler: kyberFeeHandler3.address,
+        poolMaster: poolMasterOwner,
+        rewardToken: rewardTokenB.address,
+        totalRewards: unclaimReward,
+        feeApplied: '100',
+        feeAmount: feeAmount,
+        poolMasterShare: new BN(unclaimReward)
+          .sub(new BN(feeAmount))
+          .toString(),
+      });
+
+      const poolMasterOwnerETHBalanceAfter = await balance.current(
+        poolMasterOwner
+      );
+      const expectedETHBalance = poolMasterOwnerETHBalance.add(
+        new BN(unclaimReward)
+      );
+
+      expect(poolMasterOwnerETHBalanceAfter.toString()).to.equal(
+        expectedETHBalance.toString()
+      );
+
+      const poolMembersETHShare = await kyberPoolMaster.epochFeeHandlerClaims(
+        1,
+        kyberFeeHandler1.address
+      );
+      expect(poolMembersETHShare.totalRewards.toString()).to.equal('0');
+
+      const epochFeeHandlerClaimsETHReward = await kyberPoolMaster.epochFeeHandlerClaims(
+        1,
+        kyberFeeHandler1.address
+      );
+      expect(epochFeeHandlerClaimsETHReward.claimedByPool).to.equal(true);
+
+      const poolMasterOwnerRTABalanceAfter = await rewardTokenA.balanceOf(
+        poolMasterOwner
+      );
+      const expectedRTABalance = poolMasterOwnerRTABalance.add(
+        new BN(unclaimReward)
+      );
+
+      expect(poolMasterOwnerRTABalanceAfter.toString()).to.equal(
+        expectedRTABalance.toString()
+      );
+
+      const poolMembersRTAShare = await kyberPoolMaster.epochFeeHandlerClaims(
+        1,
+        kyberFeeHandler2.address
+      );
+      expect(poolMembersRTAShare.totalRewards.toString()).to.equal('0');
+
+      const epochFeeHandlerClaimsRTAReward = await kyberPoolMaster.epochFeeHandlerClaims(
+        1,
+        kyberFeeHandler2.address
+      );
+      expect(epochFeeHandlerClaimsRTAReward.claimedByPool).to.equal(true);
+      //
+
+      const poolMasterOwnerRTBBalanceAfter = await rewardTokenB.balanceOf(
+        poolMasterOwner
+      );
+      const expectedRTBBalance = poolMasterOwnerRTBBalance.add(
+        new BN(unclaimReward)
+      );
+
+      expect(poolMasterOwnerRTBBalanceAfter.toString()).to.equal(
+        expectedRTBBalance.toString()
+      );
+
+      const poolMembersRTBShare3 = await kyberPoolMaster.epochFeeHandlerClaims(
+        2,
+        kyberFeeHandler3.address
+      );
+      expect(poolMembersRTBShare3.totalRewards.toString()).to.equal('0');
+
+      const epochFeeHandlerClaimsRTBReward3 = await kyberPoolMaster.epochFeeHandlerClaims(
+        2,
+        kyberFeeHandler3.address
+      );
+      expect(epochFeeHandlerClaimsRTBReward3.claimedByPool).to.equal(true);
+      //
+      const poolMembersRTBShare4 = await kyberPoolMaster.epochFeeHandlerClaims(
+        2,
+        kyberFeeHandler4.address
+      );
+      expect(poolMembersRTBShare4.totalRewards.toString()).to.equal('0');
+
+      const epochFeeHandlerClaimsRTBReward4 = await kyberPoolMaster.epochFeeHandlerClaims(
+        2,
+        kyberFeeHandler4.address
+      );
+      expect(epochFeeHandlerClaimsRTBReward4.claimedByPool).to.equal(false);
+    });
+
+    it('claimRewardsMaster should work after someone claimed using FeeHandler#claimStakerReward', async () => {
+      const rewardsPerEpoch = ether('3');
+      const unclaimReward = ether('0.6');
+      const feeAmount = ether('0.006');
+      const share = ether('0.297');
+
+      await prepareEpochForClaim({
+        epoch: 1,
+        staker: kyberPoolMaster.address,
+        feeHandlers: [kyberFeeHandler2],
+        stakerRewardPercentage: '200000000000000000', // 20%
+        rewardsPerEpoch: [rewardsPerEpoch], // 3ETH,
+        stakerStake: '1',
+        delegatedStake: '1',
+      });
+
+      const poolMasterOwnerRTABalance = await rewardTokenA.balanceOf(
+        poolMasterOwner
+      );
+
+      await kyberFeeHandler2.claimStakerReward(kyberPoolMaster.address, 1);
+
+      const epochFeeHandlerClaims = await kyberPoolMaster.epochFeeHandlerClaims(
+        1,
+        kyberFeeHandler2.address
+      );
+      expect(epochFeeHandlerClaims.claimedByPool).to.equal(false);
+
+      const receipt = await kyberPoolMaster.methods[
+        'claimRewardsMaster(uint256[],address[])'
+      ]([1], [kyberFeeHandler2.address], {
+        from: mike,
+      });
+
+      expectEvent(receipt, 'MasterClaimReward', {
+        epoch: '1',
+        feeHandler: kyberFeeHandler2.address,
+        poolMaster: poolMasterOwner,
+        rewardToken: rewardTokenA.address,
+        totalRewards: unclaimReward,
+        feeApplied: '100',
+        feeAmount: feeAmount,
+        poolMasterShare: share,
+      });
+
+      const poolMasterOwnerRTABalanceAfter = await rewardTokenA.balanceOf(
+        poolMasterOwner
+      );
+      const expectedRTABalance = poolMasterOwnerRTABalance
+        .add(new BN(feeAmount))
+        .add(new BN(share));
+      expect(poolMasterOwnerRTABalanceAfter.toString()).to.equal(
+        expectedRTABalance.toString()
+      );
+
+      const poolMembersRTAShare = await kyberPoolMaster.epochFeeHandlerClaims(
+        1,
+        kyberFeeHandler2.address
+      );
+      const expectedPoolMembersRTAShare = new BN(unclaimReward)
+        .sub(new BN(feeAmount))
+        .div(new BN(2));
+      expect(poolMembersRTAShare.totalRewards.toString()).to.equal(
+        expectedPoolMembersRTAShare.toString()
+      );
+
+      const epochFeeHandlerClaimsRTAReward = await kyberPoolMaster.epochFeeHandlerClaims(
+        1,
+        kyberFeeHandler2.address
+      );
+      expect(epochFeeHandlerClaimsRTAReward.claimedByPool).to.equal(true);
+    });
+
+    it('should transfer fee + share to poolMaster if it has stake for the epoch, for some given feeHandlers', async () => {
+      // fee 1%
+      // rewardPerEpoch 3ETH
+      // stakerRewardPercentage 20%
+      // unclaimReward = 3 ETH x 20 / 100 = 0.6 ETH
+      // delegatedStake 1
+      // stake 1
+      // poolMasterShare fee (1% of unclaimReward = 0.6 ETH x 1 / 100 = 0.006 ETH) + it stake share (50% of unclaimReward - fee = (0.6 ETH - 0.006 ETH) / 2 = 0.297 ETH) = 0.303 ETH
+      // poolMembersShare 50% of unclaimReward - fee = (0.6 ETH - 0.006 ETH) / 2 = 0.297 ETH
+      const rewardsPerEpoch = ether('3');
+      const unclaimReward = ether('0.6');
+      const feeAmount = ether('0.006');
+      const share = ether('0.297');
+
+      await prepareEpochForClaim({
+        epoch: 1,
+        staker: kyberPoolMaster.address,
+        feeHandlers: [kyberFeeHandler1, kyberFeeHandler2],
+        stakerRewardPercentage: '200000000000000000', // 20%
+        rewardsPerEpoch: [rewardsPerEpoch, rewardsPerEpoch], // 3ETH,
+        stakerStake: '1',
+        delegatedStake: '1',
+      });
+
+      await prepareEpochForClaim({
+        epoch: 2,
+        staker: kyberPoolMaster.address,
+        feeHandlers: [kyberFeeHandler3, kyberFeeHandler4],
+        stakerRewardPercentage: '200000000000000000', // 20%
+        rewardsPerEpoch: [rewardsPerEpoch, rewardsPerEpoch], // 3ETH,
+        stakerStake: '1',
+        delegatedStake: '1',
+      });
+
+      const poolMasterOwnerETHBalance = await balance.current(poolMasterOwner);
+      const poolMasterOwnerRTABalance = await rewardTokenA.balanceOf(
+        poolMasterOwner
+      );
+      const poolMasterOwnerRTBBalance = await rewardTokenB.balanceOf(
+        poolMasterOwner
+      );
+
+      const receipt = await kyberPoolMaster.methods[
+        'claimRewardsMaster(uint256[],address[])'
+      ](
+        [1, 2],
+        [
+          kyberFeeHandler1.address,
+          kyberFeeHandler2.address,
+          kyberFeeHandler3.address,
+          kyberFeeHandler4.address,
+        ],
+        {
+          from: mike,
+        }
+      );
+
+      expectEvent(receipt, 'MasterClaimReward', {
+        epoch: '1',
+        feeHandler: kyberFeeHandler1.address,
+        poolMaster: poolMasterOwner,
+        rewardToken: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
+        totalRewards: unclaimReward,
+        feeApplied: '100',
+        feeAmount: feeAmount,
+        poolMasterShare: share,
+      });
+
+      expectEvent(receipt, 'MasterClaimReward', {
+        epoch: '1',
+        feeHandler: kyberFeeHandler2.address,
+        poolMaster: poolMasterOwner,
+        rewardToken: rewardTokenA.address,
+        totalRewards: unclaimReward,
+        feeApplied: '100',
+        feeAmount: feeAmount,
+        poolMasterShare: share,
+      });
+
+      expectEvent(receipt, 'MasterClaimReward', {
+        epoch: '2',
+        feeHandler: kyberFeeHandler3.address,
+        poolMaster: poolMasterOwner,
+        rewardToken: rewardTokenB.address,
+        totalRewards: unclaimReward,
+        feeApplied: '100',
+        feeAmount: feeAmount,
+        poolMasterShare: share,
+      });
+
+      expectEvent(receipt, 'MasterClaimReward', {
+        epoch: '2',
+        feeHandler: kyberFeeHandler4.address,
+        poolMaster: poolMasterOwner,
+        rewardToken: rewardTokenB.address,
+        totalRewards: unclaimReward,
+        feeApplied: '100',
+        feeAmount: feeAmount,
+        poolMasterShare: share,
+      });
+
+      const poolMasterOwnerETHBalanceAfter = await balance.current(
+        poolMasterOwner
+      );
+      const expectedETHBalance = poolMasterOwnerETHBalance
+        .add(new BN(feeAmount))
+        .add(new BN(share));
+      expect(poolMasterOwnerETHBalanceAfter.toString()).to.equal(
+        expectedETHBalance.toString()
+      );
+
+      const poolMembersETHShare = await kyberPoolMaster.epochFeeHandlerClaims(
+        1,
+        kyberFeeHandler1.address
+      );
+      const expectedPoolMembersETHShare = new BN(unclaimReward)
+        .sub(new BN(feeAmount))
+        .div(new BN(2));
+      expect(poolMembersETHShare.totalRewards.toString()).to.equal(
+        expectedPoolMembersETHShare.toString()
+      );
+
+      const epochFeeHandlerClaimsETH = await kyberPoolMaster.epochFeeHandlerClaims(
+        1,
+        kyberFeeHandler1.address
+      );
+      expect(epochFeeHandlerClaimsETH.claimedByPool).to.equal(true);
+
+      const poolMasterOwnerRTABalanceAfter = await rewardTokenA.balanceOf(
+        poolMasterOwner
+      );
+      const expectedRTABalance = poolMasterOwnerRTABalance
+        .add(new BN(feeAmount))
+        .add(new BN(share));
+      expect(poolMasterOwnerRTABalanceAfter.toString()).to.equal(
+        expectedRTABalance.toString()
+      );
+
+      const poolMembersRTAShare = await kyberPoolMaster.epochFeeHandlerClaims(
+        1,
+        kyberFeeHandler2.address
+      );
+      const expectedPoolMembersRTAShare = new BN(unclaimReward)
+        .sub(new BN(feeAmount))
+        .div(new BN(2));
+      expect(poolMembersRTAShare.totalRewards.toString()).to.equal(
+        expectedPoolMembersRTAShare.toString()
+      );
+
+      const epochFeeHandlerClaimsRTA = await kyberPoolMaster.epochFeeHandlerClaims(
+        1,
+        kyberFeeHandler2.address
+      );
+      expect(epochFeeHandlerClaimsRTA.claimedByPool).to.equal(true);
+
+      //
+      const poolMasterOwnerRTBBalanceAfter = await rewardTokenB.balanceOf(
+        poolMasterOwner
+      );
+      const expectedRTBBalance = poolMasterOwnerRTBBalance
+        .add(new BN(feeAmount).mul(new BN(2)))
+        .add(new BN(share).mul(new BN(2)));
+      expect(poolMasterOwnerRTBBalanceAfter.toString()).to.equal(
+        expectedRTBBalance.toString()
+      );
+
+      const poolMembersRTBShare3 = await kyberPoolMaster.epochFeeHandlerClaims(
+        2,
+        kyberFeeHandler3.address
+      );
+      const expectedPoolMembersRTBShare3 = new BN(unclaimReward)
+        .sub(new BN(feeAmount))
+        .div(new BN(2));
+      expect(poolMembersRTBShare3.totalRewards.toString()).to.equal(
+        expectedPoolMembersRTBShare3.toString()
+      );
+
+      const epochFeeHandlerClaimsRTB3 = await kyberPoolMaster.epochFeeHandlerClaims(
+        2,
+        kyberFeeHandler3.address
+      );
+      expect(epochFeeHandlerClaimsRTB3.claimedByPool).to.equal(true);
+      //
+      const poolMembersRTBShare4 = await kyberPoolMaster.epochFeeHandlerClaims(
+        2,
+        kyberFeeHandler4.address
+      );
+      const expectedPoolMembersRTBShare4 = new BN(unclaimReward)
+        .sub(new BN(feeAmount))
+        .div(new BN(2));
+      expect(poolMembersRTBShare4.totalRewards.toString()).to.equal(
+        expectedPoolMembersRTBShare4.toString()
+      );
+
+      const epochFeeHandlerClaimsRTB4 = await kyberPoolMaster.epochFeeHandlerClaims(
+        2,
+        kyberFeeHandler4.address
+      );
+      expect(epochFeeHandlerClaimsRTB4.claimedByPool).to.equal(true);
+    });
+
+    it('should apply the fee used if it was pending', async () => {
+      await prepareEpochForClaim({
+        epoch: 2,
+        staker: kyberPoolMaster.address,
+        feeHandlers: [kyberFeeHandler1, kyberFeeHandler2],
+        stakerRewardPercentage: '200000000000000000', // 20%
+        rewardsPerEpoch: [ether('3'), ether('3')], // 3ETH
+        stakerStake: '1',
+        delegatedStake: '1',
+      });
+
+      // new fee 2%
+      await kyberPoolMaster.commitNewFee(200, {
+        from: poolMasterOwner,
+      });
+
+      await kyberDao.setCurrentEpochNumber(2);
+      const receipt = await kyberPoolMaster.methods[
+        'claimRewardsMaster(uint256[],address[])'
+      ]([2], [kyberFeeHandler1.address], {
         from: mike,
       });
       expectEvent(receipt, 'NewFees', {
@@ -1787,7 +2777,9 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       );
       expect(claimedRewardMember).to.equal(false);
 
-      const receipt = await kyberPoolMaster.claimRewardsMaster([1], {
+      const receipt = await kyberPoolMaster.methods[
+        'claimRewardsMaster(uint256[])'
+      ]([1], {
         from: mike,
       });
 
