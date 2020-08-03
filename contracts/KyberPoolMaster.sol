@@ -487,7 +487,7 @@ contract KyberPoolMaster is Ownable {
     }
 
     /**
-     * @dev  Claims rewards for a given group of epochs in all feeHandlers, distribute fees and its share to poolMaster
+     * @dev  Claims rewards for a given group of epochs and a given group of feeHandlers, distribute fees and its share to poolMaster
      * @param _epochGroup An array of epochs for which rewards are being claimed. Asc order and uniqueness is required.
      * @param _feeHandlerGroup An array of FeeHandlers for which rewards are being claimed.
      */
