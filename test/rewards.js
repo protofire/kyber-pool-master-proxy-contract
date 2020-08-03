@@ -57,7 +57,7 @@ contract('KyberPoolMaster claiming', async (accounts) => {
     await reverter.snapshot();
   });
 
-  describe('#getUnclaimedRewards - getAllEpochWithUnclaimedRewards', () => {
+  describe('#getUnclaimedRewards - getUnclaimedRewardsData', () => {
     before('one time init', async () => {
       daoSetter = accounts[1];
       poolMasterOwner = accounts[2];
@@ -189,7 +189,7 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       expect(unclaimed.toString()).to.equal('600000000000000000'); // 3ETH -> 20% = 0.6ETH
     });
 
-    it('should return all epochs with at least one FeeHandler paying rewards', async () => {
+    it('should return all epochs/feeHandlers with unclaimed rewards', async () => {
       await kyberDao.setCurrentEpochNumber(7);
 
       await kyberDao.setStakerRewardPercentage(
@@ -234,8 +234,111 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       await kyberFeeHandler2.setRewardsPerEpoch(7, '3000000000000000000'); // 3ETH
       await kyberFeeHandler3.setRewardsPerEpoch(7, '0'); // 0ETH
 
-      const unclaimedEpochs = await kyberPoolMaster.getAllEpochWithUnclaimedRewards();
-      expect(JSON.stringify(unclaimedEpochs)).to.equal('["2","3","6","7"]'); // epoch 2 is set in previos tests
+      const unclaimedEpochsFeeHandlers = await kyberPoolMaster.methods[
+        'getUnclaimedRewardsData()'
+      ]();
+
+      expect(unclaimedEpochsFeeHandlers.length).to.equal(4);
+
+      expect(unclaimedEpochsFeeHandlers[0].epoch).to.equal('2');
+      expect(unclaimedEpochsFeeHandlers[0].feeHandler).to.equal(
+        kyberFeeHandler1.address
+      );
+      expect(unclaimedEpochsFeeHandlers[0].rewards.toString()).to.equal(
+        '600000000000000000'
+      );
+
+      expect(unclaimedEpochsFeeHandlers[1].epoch).to.equal('3');
+      expect(unclaimedEpochsFeeHandlers[1].feeHandler).to.equal(
+        kyberFeeHandler1.address
+      );
+      expect(unclaimedEpochsFeeHandlers[1].rewards.toString()).to.equal(
+        '600000000000000000'
+      );
+
+      expect(unclaimedEpochsFeeHandlers[2].epoch).to.equal('6');
+      expect(unclaimedEpochsFeeHandlers[2].feeHandler).to.equal(
+        kyberFeeHandler2.address
+      );
+      expect(unclaimedEpochsFeeHandlers[2].rewards.toString()).to.equal(
+        '600000000000000000'
+      );
+
+      expect(unclaimedEpochsFeeHandlers[3].epoch).to.equal('6');
+      expect(unclaimedEpochsFeeHandlers[3].feeHandler).to.equal(
+        kyberFeeHandler3.address
+      );
+      expect(unclaimedEpochsFeeHandlers[3].rewards.toString()).to.equal(
+        '600000000000000000'
+      );
+    });
+
+    it('should return all epochs/feeHander with unclaimed rewards from the given groups of epochs and feeHandlers', async () => {
+      await kyberDao.setCurrentEpochNumber(7);
+
+      await kyberDao.setStakerRewardPercentage(
+        kyberPoolMaster.address,
+        3,
+        '200000000000000000'
+      ); // 20%
+      await kyberDao.setStakerRewardPercentage(kyberPoolMaster.address, 4, '0'); // 00%
+      await kyberDao.setStakerRewardPercentage(
+        kyberPoolMaster.address,
+        5,
+        '200000000000000000'
+      ); // 20%
+      await kyberDao.setStakerRewardPercentage(
+        kyberPoolMaster.address,
+        6,
+        '200000000000000000'
+      ); // 20%
+      await kyberDao.setStakerRewardPercentage(
+        kyberPoolMaster.address,
+        7,
+        '200000000000000000'
+      ); // 20%
+
+      await kyberFeeHandler1.setRewardsPerEpoch(3, '3000000000000000000'); // 3ETH
+      await kyberFeeHandler2.setRewardsPerEpoch(3, '0'); // 0ETH
+      await kyberFeeHandler3.setRewardsPerEpoch(3, '0'); // 0ETH
+
+      await kyberFeeHandler1.setRewardsPerEpoch(4, '3000000000000000000'); // 3ETH
+      await kyberFeeHandler2.setRewardsPerEpoch(4, '3000000000000000000'); // 3ETH
+      await kyberFeeHandler3.setRewardsPerEpoch(4, '3000000000000000000'); // 3ETH
+
+      await kyberFeeHandler1.setRewardsPerEpoch(5, '0'); // 0ETH
+      await kyberFeeHandler2.setRewardsPerEpoch(5, '0'); // 0ETH
+      await kyberFeeHandler3.setRewardsPerEpoch(5, '0'); // 0ETH
+
+      await kyberFeeHandler1.setRewardsPerEpoch(6, '0'); // 0ETH
+      await kyberFeeHandler2.setRewardsPerEpoch(6, '3000000000000000000'); // 3ETH
+      await kyberFeeHandler3.setRewardsPerEpoch(6, '3000000000000000000'); // 3ETH
+
+      await kyberFeeHandler1.setRewardsPerEpoch(7, '0'); // 0ETH
+      await kyberFeeHandler2.setRewardsPerEpoch(7, '3000000000000000000'); // 3ETH
+      await kyberFeeHandler3.setRewardsPerEpoch(7, '0'); // 0ETH
+
+      const unclaimedEpochsFeeHandlers = await kyberPoolMaster.methods[
+        'getUnclaimedRewardsData(uint256[],address[])'
+      ]([3, 4, 5, 6, 7], [kyberFeeHandler1.address, kyberFeeHandler2.address]);
+
+      expect(unclaimedEpochsFeeHandlers.length).to.equal(2);
+
+      expect(unclaimedEpochsFeeHandlers[0].epoch).to.equal('3');
+      expect(unclaimedEpochsFeeHandlers[0].feeHandler).to.equal(
+        kyberFeeHandler1.address
+      );
+      expect(unclaimedEpochsFeeHandlers[0].rewards.toString()).to.equal(
+        '600000000000000000'
+      );
+
+      expect(unclaimedEpochsFeeHandlers[1].epoch).to.equal('6');
+      expect(unclaimedEpochsFeeHandlers[1].feeHandler).to.equal(
+        kyberFeeHandler2.address
+      );
+      expect(unclaimedEpochsFeeHandlers[1].rewards.toString()).to.equal(
+        '600000000000000000'
+      );
     });
   });
 

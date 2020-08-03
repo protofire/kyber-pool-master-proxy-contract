@@ -74,6 +74,12 @@ contract KyberPoolMaster is Ownable {
         uint256 poolMasterShare;
     }
 
+    struct UnclaimedRewardData {
+        uint256 epoch;
+        address feeHandler;
+        uint256 rewards;
+    }
+
     /*** Events ***/
     event CommitNewFees(uint256 deadline, uint256 feeRate);
     event NewFees(uint256 fromEpoch, uint256 feeRate);
@@ -405,34 +411,66 @@ contract KyberPoolMaster is Ownable {
     /**
      * @dev  Queries the epochs with at least one feeHandler paying rewards, for the pool
      */
-    function getAllEpochWithUnclaimedRewards()
+    function getUnclaimedRewardsData()
         external
         view
-        returns (uint256[] memory)
+        returns (UnclaimedRewardData[] memory)
     {
         uint256 currentEpoch = kyberDao.getCurrentEpochNumber();
-        uint256 maxEpochNumber = currentEpoch.sub(firstEpoch).add(1);
-        uint256[] memory epochsWithRewards = new uint256[](maxEpochNumber);
-        uint256 epochCounter = 0;
-        for (uint256 epoch = firstEpoch; epoch <= currentEpoch; epoch++) {
-            for (uint256 i = 0; i < feeHandlersList.length; i++) {
+        uint256 maxEpochNumber = currentEpoch.sub(firstEpoch);
+        uint256[] memory epochGroup = new uint256[](maxEpochNumber);
+        uint256 e = 0;
+        for (uint256 epoch = firstEpoch; epoch < currentEpoch; epoch++) {
+            epochGroup[e] = epoch;
+            e++;
+        }
+
+        return _getUnclaimedRewardsData(epochGroup, feeHandlersList);
+    }
+
+    /**
+     * @dev  Queries the epochs with at least one feeHandler paying rewards, for the pool
+     */
+    function getUnclaimedRewardsData(
+        uint256[] calldata _epochGroup,
+        address[] calldata _feeHandlerGroup
+    ) external view returns (UnclaimedRewardData[] memory) {
+        return _getUnclaimedRewardsData(_epochGroup, _feeHandlerGroup);
+    }
+
+    function _getUnclaimedRewardsData(
+        uint256[] memory _epochGroup,
+        address[] memory _feeHandlerGroup
+    ) internal view returns (UnclaimedRewardData[] memory) {
+
+            UnclaimedRewardData[] memory epochFeeHanlderRewards
+         = new UnclaimedRewardData[](
+            _epochGroup.length.mul(_feeHandlerGroup.length)
+        );
+        uint256 rewardsCounter = 0;
+        for (uint256 e = 0; e < _epochGroup.length; e++) {
+            for (uint256 f = 0; f < _feeHandlerGroup.length; f++) {
                 uint256 unclaimed = getUnclaimedRewards(
-                    epoch,
-                    IExtendedKyberFeeHandler(feeHandlersList[i])
+                    _epochGroup[e],
+                    IExtendedKyberFeeHandler(_feeHandlerGroup[f])
                 );
 
                 if (unclaimed > 0) {
-                    epochsWithRewards[epochCounter] = epoch;
-                    epochCounter++;
-                    // stop querying feeHandlers on the first with rewards for the epoch
-                    break;
+                    epochFeeHanlderRewards[rewardsCounter] = UnclaimedRewardData(
+                        _epochGroup[e],
+                        _feeHandlerGroup[f],
+                        unclaimed
+                    );
+                    rewardsCounter++;
                 }
             }
         }
 
-        uint256[] memory result = new uint256[](epochCounter);
-        for (uint256 i = 0; i < epochCounter; i++) {
-            result[i] = epochsWithRewards[i];
+        UnclaimedRewardData[] memory result = new UnclaimedRewardData[](
+            rewardsCounter
+        );
+        for (uint256 i = 0; i < (rewardsCounter); i++) {
+            result[i] = epochFeeHanlderRewards[i];
         }
 
         return result;
