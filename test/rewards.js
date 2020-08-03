@@ -87,7 +87,7 @@ contract('KyberPoolMaster claiming', async (accounts) => {
           kyberFeeHandler2.address,
           kyberFeeHandler3.address,
         ],
-        [ZERO_ADDRESS, rewardTokenA.address, rewardTokenB.address],
+        [ETH_TOKEN_ADDRESS, rewardTokenA.address, rewardTokenB.address],
         {
           from: poolMasterOwner,
         }
@@ -247,13 +247,20 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       expect(unclaimedEpochsFeeHandlers[0].rewards.toString()).to.equal(
         '600000000000000000'
       );
+      expect(unclaimedEpochsFeeHandlers[0].rewardToken).to.equal(
+        ETH_TOKEN_ADDRESS
+      );
 
+      rewardTokenA.address;
       expect(unclaimedEpochsFeeHandlers[1].epoch).to.equal('3');
       expect(unclaimedEpochsFeeHandlers[1].feeHandler).to.equal(
         kyberFeeHandler1.address
       );
       expect(unclaimedEpochsFeeHandlers[1].rewards.toString()).to.equal(
         '600000000000000000'
+      );
+      expect(unclaimedEpochsFeeHandlers[1].rewardToken).to.equal(
+        ETH_TOKEN_ADDRESS
       );
 
       expect(unclaimedEpochsFeeHandlers[2].epoch).to.equal('6');
@@ -263,6 +270,9 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       expect(unclaimedEpochsFeeHandlers[2].rewards.toString()).to.equal(
         '600000000000000000'
       );
+      expect(unclaimedEpochsFeeHandlers[2].rewardToken).to.equal(
+        rewardTokenA.address
+      );
 
       expect(unclaimedEpochsFeeHandlers[3].epoch).to.equal('6');
       expect(unclaimedEpochsFeeHandlers[3].feeHandler).to.equal(
@@ -270,6 +280,9 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       );
       expect(unclaimedEpochsFeeHandlers[3].rewards.toString()).to.equal(
         '600000000000000000'
+      );
+      expect(unclaimedEpochsFeeHandlers[3].rewardToken).to.equal(
+        rewardTokenB.address
       );
     });
 
@@ -331,6 +344,9 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       expect(unclaimedEpochsFeeHandlers[0].rewards.toString()).to.equal(
         '600000000000000000'
       );
+      expect(unclaimedEpochsFeeHandlers[0].rewardToken).to.equal(
+        ETH_TOKEN_ADDRESS
+      );
 
       expect(unclaimedEpochsFeeHandlers[1].epoch).to.equal('6');
       expect(unclaimedEpochsFeeHandlers[1].feeHandler).to.equal(
@@ -338,6 +354,9 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       );
       expect(unclaimedEpochsFeeHandlers[1].rewards.toString()).to.equal(
         '600000000000000000'
+      );
+      expect(unclaimedEpochsFeeHandlers[1].rewardToken).to.equal(
+        rewardTokenA.address
       );
     });
   });
@@ -2202,7 +2221,7 @@ contract('KyberPoolMaster claiming', async (accounts) => {
         2,
         100, // Denominated in 1e4 units - 100 = 1%
         [kyberFeeHandler.address],
-        [ZERO_ADDRESS],
+        [ETH_TOKEN_ADDRESS],
         {from: poolMasterOwner}
       );
 
@@ -2425,10 +2444,38 @@ contract('KyberPoolMaster claiming', async (accounts) => {
         5
       );
 
-      const unclaimedEpochs = await kyberPoolMaster.getAllEpochWithUnclaimedRewardsMember(
+      const unclaimedEpochsFeeHandlers = await kyberPoolMaster.getAllUnclaimedRewardsDataMember(
         mike
       );
-      expect(JSON.stringify(unclaimedEpochs)).to.equal('["1","3","5"]');
+
+      expect(unclaimedEpochsFeeHandlers.length).to.equal(3);
+
+      expect(unclaimedEpochsFeeHandlers[0].epoch).to.equal('1');
+      expect(unclaimedEpochsFeeHandlers[0].feeHandler).to.equal(
+        kyberFeeHandler.address
+      );
+      expect(unclaimedEpochsFeeHandlers[0].rewards.toString()).to.equal('2');
+      expect(unclaimedEpochsFeeHandlers[0].rewardToken).to.equal(
+        ETH_TOKEN_ADDRESS
+      );
+
+      expect(unclaimedEpochsFeeHandlers[1].epoch).to.equal('3');
+      expect(unclaimedEpochsFeeHandlers[1].feeHandler).to.equal(
+        kyberFeeHandler.address
+      );
+      expect(unclaimedEpochsFeeHandlers[1].rewards.toString()).to.equal('2');
+      expect(unclaimedEpochsFeeHandlers[1].rewardToken).to.equal(
+        ETH_TOKEN_ADDRESS
+      );
+
+      expect(unclaimedEpochsFeeHandlers[2].epoch).to.equal('5');
+      expect(unclaimedEpochsFeeHandlers[2].feeHandler).to.equal(
+        kyberFeeHandler.address
+      );
+      expect(unclaimedEpochsFeeHandlers[2].rewards.toString()).to.equal('2');
+      expect(unclaimedEpochsFeeHandlers[2].rewardToken).to.equal(
+        ETH_TOKEN_ADDRESS
+      );
     });
 
     it('should return all epochs with pending to claim rewards with custom from and end epochs', async () => {
@@ -2501,10 +2548,29 @@ contract('KyberPoolMaster claiming', async (accounts) => {
         5
       );
 
-      const unclaimedEpochs = await kyberPoolMaster.methods[
-        'getAllEpochWithUnclaimedRewardsMember(address,uint256,uint256)'
+      const unclaimedEpochsFeeHandlers = await kyberPoolMaster.methods[
+        'getAllUnclaimedRewardsDataMember(address,uint256,uint256)'
       ](mike, 3, 5);
-      expect(JSON.stringify(unclaimedEpochs)).to.equal('["3","5"]');
+      // expect(JSON.stringify(unclaimedEpochs)).to.equal('["3","5"]');
+      expect(unclaimedEpochsFeeHandlers.length).to.equal(2);
+
+      expect(unclaimedEpochsFeeHandlers[0].epoch).to.equal('3');
+      expect(unclaimedEpochsFeeHandlers[0].feeHandler).to.equal(
+        kyberFeeHandler.address
+      );
+      expect(unclaimedEpochsFeeHandlers[0].rewards.toString()).to.equal('2');
+      expect(unclaimedEpochsFeeHandlers[0].rewardToken).to.equal(
+        ETH_TOKEN_ADDRESS
+      );
+
+      expect(unclaimedEpochsFeeHandlers[1].epoch).to.equal('5');
+      expect(unclaimedEpochsFeeHandlers[1].feeHandler).to.equal(
+        kyberFeeHandler.address
+      );
+      expect(unclaimedEpochsFeeHandlers[1].rewards.toString()).to.equal('2');
+      expect(unclaimedEpochsFeeHandlers[1].rewardToken).to.equal(
+        ETH_TOKEN_ADDRESS
+      );
     });
   });
 
