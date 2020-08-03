@@ -410,7 +410,7 @@ contract KyberPoolMaster is Ownable {
     }
 
     /**
-     * @dev  Queries the epochs with at least one feeHandler paying rewards, for the pool
+     * @dev Returns data related to all epochs and feeHandlers with unclaimed rewards, for the pool.
      */
     function getUnclaimedRewardsData()
         external
@@ -430,7 +430,7 @@ contract KyberPoolMaster is Ownable {
     }
 
     /**
-     * @dev  Queries the epochs with at least one feeHandler paying rewards, for the pool
+     * @dev Returns data related to all epochs and feeHandlers, from the given groups, with unclaimed rewards, for the pool.
      */
     function getUnclaimedRewardsData(
         uint256[] calldata _epochGroup,
@@ -705,7 +705,7 @@ contract KyberPoolMaster is Ownable {
     }
 
     /**
-     * @dev  Queries the epochs with at least one feeHandler paying rewards, for a the poolMember
+     * @dev  Returns data related to all epochs and feeHandlers with unclaimed rewards, for a the poolMember. From initial to current epoch.
      * @param _poolMember address of pool member
      */
     function getAllUnclaimedRewardsDataMember(address _poolMember)
@@ -723,7 +723,7 @@ contract KyberPoolMaster is Ownable {
     }
 
     /**
-     * @dev Queries the epochs with at least one feeHandler paying rewards, for a the poolMember
+     * @dev Returns data related to all epochs and feeHandlers with unclaimed rewards, for a the poolMember.
      * @param _poolMember address of pool member
      * @param _fromEpoch initial epoch parameter
      * @param _toEpoch end epoch parameter
@@ -742,7 +742,7 @@ contract KyberPoolMaster is Ownable {
     }
 
     /**
-     * @dev Queries the epochs with at least one feeHandler paying rewards, for a the poolMember
+     * @dev Queries data related to epochs and feeHandlers with unclaimed rewards, for a the poolMember
      * @param _poolMember address of pool member
      * @param _fromEpoch initial epoch parameter
      * @param _toEpoch end epoch parameter
