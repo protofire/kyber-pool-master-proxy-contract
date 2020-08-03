@@ -89,6 +89,8 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       stakerRewardPercentage,
       poolMasterStakesDelegatedStakes
     ) => {
+      await kyberDao.setCurrentEpochNumber(epoch + 1);
+
       const poolMaster = new BN(poolMasterStakesDelegatedStakes[0]);
       const delegatedStake = new BN(poolMasterStakesDelegatedStakes[1]);
       const totalStake = poolMaster.add(delegatedStake);
