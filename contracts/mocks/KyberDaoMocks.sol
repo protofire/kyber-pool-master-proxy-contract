@@ -38,6 +38,10 @@ contract KyberDaoWithRewardPercentageSetter is KyberDaoHandleCurrentEpoch {
         view
         returns (uint256)
     {
+        if (epoch == getCurrentEpochNumber()) {
+            return 0;
+        }
+
         return stakerRewardPercentage[staker][epoch];
     }
 

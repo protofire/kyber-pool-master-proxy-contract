@@ -89,6 +89,8 @@ contract('KyberPoolMaster claiming', async (accounts) => {
       stakerRewardPercentage,
       poolMasterStakesDelegatedStakes
     ) => {
+      await kyberDao.setCurrentEpochNumber(epoch + 1);
+
       const poolMaster = new BN(poolMasterStakesDelegatedStakes[0]);
       const delegatedStake = new BN(poolMasterStakesDelegatedStakes[1]);
       const totalStake = poolMaster.add(delegatedStake);
@@ -106,9 +108,12 @@ contract('KyberPoolMaster claiming', async (accounts) => {
 
       const poolMasterOwnerBalance = await balance.current(poolMasterOwner);
 
-      const receipt = await kyberPoolMaster.claimRewardsMaster([epoch], {
+      const receipt = await kyberPoolMaster.methods[
+        'claimRewardsMaster(uint256[])'
+      ]([epoch], {
         from: mike,
       });
+
       expectEvent(receipt, 'MasterClaimReward', {
         epoch: epoch.toString(),
         feeHandler: kyberFeeHandler.address,
