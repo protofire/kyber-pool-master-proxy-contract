@@ -505,11 +505,7 @@ contract KyberPoolMaster is Ownable {
             "cRMaster: _feeHandlerGroup required"
         );
 
-        IERC20[] memory tokensWithRewards = new IERC20[](
-            _feeHandlerGroup.length
-        );
-        uint256 tokensWithRewardsLength = 0;
-        uint256[] memory accruedByToken = new uint256[](
+        uint256[] memory accruedByFeeHandler = new uint256[](
             _feeHandlerGroup.length
         );
 
@@ -540,22 +536,9 @@ contract KyberPoolMaster is Ownable {
                     continue;
                 }
 
-                int256 tokenI = findIndex(
-                    tokensWithRewards,
-                    rewardInfo.rewardToken
+                accruedByFeeHandler[i] = accruedByFeeHandler[i].add(
+                    rewardInfo.poolMasterShare
                 );
-                if (tokenI < 0) {
-                    tokensWithRewards[tokensWithRewardsLength] = rewardInfo
-                        .rewardToken;
-                    accruedByToken[tokensWithRewardsLength] = rewardInfo
-                        .poolMasterShare;
-                    tokensWithRewardsLength++;
-                } else {
-                    accruedByToken[uint256(tokenI)] = accruedByToken[uint256(
-                        tokenI
-                    )]
-                        .add(rewardInfo.poolMasterShare);
-                }
 
                 if (!successfulClaimByFeeHandler[_feeHandlerGroup[i]]) {
                     successfulClaimByFeeHandler[_feeHandlerGroup[i]] = true;
@@ -564,11 +547,11 @@ contract KyberPoolMaster is Ownable {
         }
 
         address poolMaster = owner();
-        for (uint256 k = 0; k < tokensWithRewardsLength; k++) {
+        for (uint256 k = 0; k < accruedByFeeHandler.length; k++) {
             _sendTokens(
-                tokensWithRewards[k],
+                rewardTokenByFeeHandler[_feeHandlerGroup[k]],
                 poolMaster,
-                accruedByToken[k],
+                accruedByFeeHandler[k],
                 "cRMaster: poolMaster share transfer failed"
             );
         }
@@ -646,6 +629,10 @@ contract KyberPoolMaster is Ownable {
         uint256 _value,
         string memory _errorMsg
     ) internal {
+        if (_value == 0) {
+            return;
+        }
+
         if (_token == ETH_TOKEN_ADDRESS) {
             (bool success, ) = _receiver.call{value: _value}("");
             require(success, _errorMsg);
@@ -850,11 +837,8 @@ contract KyberPoolMaster is Ownable {
             _feeHandlerGroup.length > 0,
             "cRMember: _feeHandlerGroup required"
         );
-        IERC20[] memory tokensWithRewards = new IERC20[](
-            _feeHandlerGroup.length
-        );
-        uint256 tokensWithRewardsLength = 0;
-        uint256[] memory accruedByToken = new uint256[](
+
+        uint256[] memory accruedByFeeHandler = new uint256[](
             _feeHandlerGroup.length
         );
 
@@ -876,17 +860,10 @@ contract KyberPoolMaster is Ownable {
                     continue;
                 }
 
-                int256 tokenI = findIndex(tokensWithRewards, rewardToken);
-                if (tokenI < 0) {
-                    tokensWithRewards[tokensWithRewardsLength] = rewardToken;
-                    accruedByToken[tokensWithRewardsLength] = poolMemberShare;
-                    tokensWithRewardsLength++;
-                } else {
-                    accruedByToken[uint256(tokenI)] = accruedByToken[uint256(
-                        tokenI
-                    )]
-                        .add(poolMemberShare);
-                }
+                accruedByFeeHandler[i] = accruedByFeeHandler[i].add(
+                    poolMemberShare
+                );
+
                 claimedDelegateReward[_epoch][_poolMember][_feeHandlerGroup[i]] = true;
 
                 emit MemberClaimReward(
@@ -900,36 +877,17 @@ contract KyberPoolMaster is Ownable {
         }
 
         // distribute _poolMember rewards share
-        for (uint256 k = 0; k < tokensWithRewardsLength; k++) {
+        for (uint256 k = 0; k < accruedByFeeHandler.length; k++) {
             _sendTokens(
-                tokensWithRewards[k],
+                rewardTokenByFeeHandler[_feeHandlerGroup[k]],
                 _poolMember,
-                accruedByToken[k],
+                accruedByFeeHandler[k],
                 "cRMember: poolMember share transfer failed"
             );
         }
     }
 
     // Utils
-
-    /**
-     * @dev Returns the index of `_token` if `_tokens` contains it or -1
-     */
-    function findIndex(IERC20[] memory _tokens, IERC20 _token)
-        internal
-        pure
-        returns (int256)
-    {
-        int256 index = -1;
-        for (uint256 i = 0; i < _tokens.length; i++) {
-            if (_tokens[i] == _token) {
-                index = int256(i);
-                break;
-            }
-        }
-
-        return index;
-    }
 
     /**
      * @dev Calculates rewards share based on the stake over the total stake
