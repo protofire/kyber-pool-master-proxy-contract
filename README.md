@@ -15,6 +15,9 @@ The current KyberDao delegation model allows for non-custodial delegation of KNC
 - Allow the users to claim their rewards from the smart contracts
 - Track the rewards that have been claimed by the users
 
+#### Audit
+Find v1.0.0 audits results [here](audit/v1.0.0-KyberPoolSecurity.pdf)
+
 #### How it works
 - If you deploy this smart contract, KNC holders can delegate their KNC voting power to the contract where you act as pool operator.
 - You can vote on behalf of pool members, but you will have no control over their KNC or ETH rewards.
