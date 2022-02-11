@@ -37,7 +37,7 @@
   },
   "homepage": "https://github.com/protofire/kyber-pool-master-proxy-contract#readme",
   "devDependencies": {
-    "@openzeppelin/contracts": "^3.0.1",
+    "@openzeppelin/contracts": "^4.4.2",
     "@openzeppelin/test-helpers": "^0.5.5",
     "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",
